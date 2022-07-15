@@ -1,5 +1,5 @@
 #![warn(clippy::pedantic)]
 
 fn main() {
-    println!("Hello, world!");
+    chip_8_emulator::app::run();
 }
