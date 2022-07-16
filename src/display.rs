@@ -3,8 +3,8 @@ pub(crate) mod component {
 
     #[derive(Component)]
     pub(crate) struct Pixel {
-        pub(crate) x: u16,
-        pub(crate) y: u16,
+        pub(crate) x: u8,
+        pub(crate) y: u8,
     }
 }
 
@@ -28,8 +28,8 @@ mod system {
 
     pub(super) fn spawn_pixels(mut commands: Commands) {
         fn transform(
-            pixel_x: u16,
-            pixel_y: u16,
+            pixel_x: u8,
+            pixel_y: u8,
             pixel_size: Vec2,
             pixel_padding_size: f32,
         ) -> Transform {
@@ -41,8 +41,8 @@ mod system {
         }
 
         let display_size = Vec2::new(1280.0, 640.0);
-        let pixels_x: u16 = 64;
-        let pixels_y: u16 = 32;
+        let pixels_x: u8 = 64;
+        let pixels_y: u8 = 32;
         let pixel_padding_size: f32 = 4.0;
 
         let pixel_size = Vec2::new(

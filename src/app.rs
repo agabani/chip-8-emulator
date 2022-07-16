@@ -11,6 +11,7 @@ pub fn run() {
         .add_startup_system(camera::system::spawn)
         .add_plugin(display::plugin::Plugin)
         .add_system(rom::system::drag_and_drop_loader)
+        .add_system(emulator::fetch_decode_execute)
         .add_system(bevy::input::system::exit_on_esc_system)
         .run();
 }
