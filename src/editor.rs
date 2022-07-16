@@ -1,7 +1,5 @@
-use bevy::prelude::*;
-
 pub(crate) mod plugin {
-    use super::*;
+    use bevy::prelude::*;
 
     pub(crate) struct Plugin;
 

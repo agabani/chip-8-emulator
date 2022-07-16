@@ -2,6 +2,8 @@
 
 pub mod app;
 
+mod camera;
+
 mod editor;
 
 mod window;
