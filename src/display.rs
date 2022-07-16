@@ -8,12 +8,25 @@ pub(crate) mod component {
     }
 }
 
-pub(crate) mod system {
+pub(crate) mod plugin {
+    use super::system;
+
+    pub(crate) struct Plugin;
+
+    impl bevy::prelude::Plugin for Plugin {
+        fn build(&self, app: &mut bevy::prelude::App) {
+            app.add_startup_system(system::spawn_pixels)
+                .add_system(system::recolor_pixels);
+        }
+    }
+}
+
+mod system {
     use bevy::prelude::*;
 
     use super::component::Pixel;
 
-    pub(crate) fn spawn(mut commands: Commands) {
+    pub(super) fn spawn_pixels(mut commands: Commands) {
         fn transform(
             pixel_x: u16,
             pixel_y: u16,
@@ -78,9 +91,9 @@ pub(crate) mod system {
     }
 
     #[allow(clippy::needless_pass_by_value)]
-    pub(crate) fn render(
-        mut query: Query<(&Pixel, &mut Sprite)>,
+    pub(super) fn recolor_pixels(
         emulator: Res<crate::emulator::Emulator>,
+        mut query: Query<(&Pixel, &mut Sprite)>,
     ) {
         for (pixel, mut sprite) in query.iter_mut() {
             if emulator.is_pixel_on(pixel.x, pixel.y) {
