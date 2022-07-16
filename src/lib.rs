@@ -8,4 +8,6 @@ mod display;
 
 mod editor;
 
+mod rom;
+
 mod window;
