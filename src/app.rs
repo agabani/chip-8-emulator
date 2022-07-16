@@ -1,10 +1,11 @@
 use bevy::prelude::*;
 
-use crate::{camera, display, editor, rom, window};
+use crate::{camera, display, editor, emulator, rom, window};
 
 pub fn run() {
     App::new()
         .insert_resource(window::resource())
+        .insert_resource(emulator::Emulator::new())
         .add_plugins(DefaultPlugins)
         .add_plugin(editor::plugin::Plugin)
         .add_startup_system(camera::system::spawn)

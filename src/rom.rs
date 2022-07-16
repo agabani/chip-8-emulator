@@ -30,19 +30,22 @@ pub(crate) mod system {
     pub(crate) fn drag_and_drop_loader(
         mut commands: Commands,
         mut reader: EventReader<FileDragAndDrop>,
+        mut emulator: ResMut<crate::emulator::Emulator>,
     ) {
         for event in reader.iter() {
             match event {
                 FileDragAndDrop::DroppedFile { id: _, path_buf } => {
+                    let mut rom = Vec::new();
                     let mut file = std::fs::File::open(path_buf).expect("failed to open file");
-                    let mut binary = Vec::new();
-                    file.read_to_end(&mut binary).expect("failed to read file");
+                    file.read_to_end(&mut rom).expect("failed to read file");
+
+                    emulator.load_rom(&rom).expect("failed to load rom");
 
                     commands
                         .spawn()
                         .insert(Name::new("rom"))
                         .insert(component::Path::new(path_buf.to_str().unwrap().to_string()))
-                        .insert(component::Content::new(binary));
+                        .insert(component::Content::new(rom));
                 }
                 FileDragAndDrop::HoveredFile { id: _, path_buf: _ }
                 | FileDragAndDrop::HoveredFileCancelled { id: _ } => (),
