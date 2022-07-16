@@ -4,6 +4,7 @@ pub fn run() {
     let mut app = App::new();
     app.add_plugins(DefaultPlugins);
     add_editor(&mut app);
+    app.add_system(bevy::input::system::exit_on_esc_system);
     app.run();
 }
 
