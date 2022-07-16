@@ -2,4 +2,6 @@
 
 pub mod app;
 
+mod editor;
+
 mod window;
