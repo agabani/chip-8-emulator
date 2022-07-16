@@ -2,7 +2,10 @@ pub(crate) mod component {
     use bevy::prelude::*;
 
     #[derive(Component)]
-    pub(crate) struct Pixel;
+    pub(crate) struct Pixel {
+        pub(crate) x: u16,
+        pub(crate) y: u16,
+    }
 }
 
 pub(crate) mod system {
@@ -65,9 +68,36 @@ pub(crate) mod system {
                                 "pixel x:{:0>2} y:{:0>2}",
                                 pixel_x, pixel_y
                             )))
-                            .insert(Pixel);
+                            .insert(Pixel {
+                                x: pixel_x,
+                                y: pixel_y,
+                            });
                     }
                 }
             });
+    }
+
+    #[allow(clippy::needless_pass_by_value)]
+    pub(crate) fn render(
+        mut query: Query<(&Pixel, &mut Sprite)>,
+        emulator: Res<crate::emulator::Emulator>,
+    ) {
+        for (pixel, mut sprite) in query.iter_mut() {
+            if emulator.is_pixel_on(pixel.x, pixel.y) {
+                sprite.color = Color::Rgba {
+                    red: 255.0,
+                    green: 255.0,
+                    blue: 255.0,
+                    alpha: 1.0,
+                };
+            } else {
+                sprite.color = Color::Rgba {
+                    red: 0.0,
+                    green: 0.0,
+                    blue: 0.0,
+                    alpha: 1.0,
+                };
+            }
+        }
     }
 }
