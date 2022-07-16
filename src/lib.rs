@@ -4,6 +4,8 @@ pub mod app;
 
 mod camera;
 
+mod display;
+
 mod editor;
 
 mod window;
