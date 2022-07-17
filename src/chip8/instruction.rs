@@ -12,6 +12,8 @@ pub(super) enum Instruction {
     SkipIfEqual1 { x: u8, nn: u8 },
     /// 4XNN
     SkipIfNotEqual1 { x: u8, nn: u8 },
+    /// 5XY0
+    SkipIfEqual2 { x: u8, y: u8 },
     /// 6XNN
     SetRegister { x: u8, nn: u8 },
     /// 7XNN
@@ -36,6 +38,8 @@ pub(super) enum Instruction {
     DisplayDraw { x: u8, y: u8, n: u8 },
     /// FX07
     SetCurrentDelayTimerValueToRegister { x: u8 },
+    /// FX0A
+    GetKey { x: u8 },
     /// FX15
     SetDelayTimer { x: u8 },
     /// FX18
@@ -74,6 +78,7 @@ impl Instruction {
                 x: n2,
                 nn: (n3 << 4) + n4,
             },
+            [0x5, n2, n3, 0x0] => Instruction::SkipIfEqual2 { x: n2, y: n3 },
             [0x6, n2, n3, n4] => Instruction::SetRegister {
                 x: n2,
                 nn: (n3 << 4) + n4,
@@ -98,6 +103,7 @@ impl Instruction {
                 n: n4,
             },
             [0xF, n2, 0x0, 0x7] => Instruction::SetCurrentDelayTimerValueToRegister { x: n2 },
+            [0xF, n2, 0x0, 0xA] => Instruction::GetKey { x: n2 },
             [0xF, n2, 0x1, 0x5] => Instruction::SetDelayTimer { x: n2 },
             [0xF, n2, 0x1, 0x8] => Instruction::SetSoundTimer { x: n2 },
             [0xF, n2, 0x1, 0xE] => Instruction::AddToIndex { x: n2 },

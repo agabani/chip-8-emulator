@@ -52,6 +52,11 @@ impl Cpu {
                     self.set_program_counter(self.get_program_counter() + 2);
                 }
             }
+            Instruction::SkipIfEqual2 { x, y } => {
+                if self.get_v_register(x) == self.get_v_register(y) {
+                    self.set_program_counter(self.get_program_counter() + 2);
+                }
+            }
             Instruction::SetRegister { x, nn } => self.set_v_register(x, nn),
             Instruction::AddValueToRegister { x, nn } => {
                 let (result, _) = self.get_v_register(x).overflowing_add(nn);
@@ -164,6 +169,9 @@ impl Cpu {
             Instruction::SetCurrentDelayTimerValueToRegister { x } => {
                 self.set_v_register(x, self.get_delay_timer())
             }
+            Instruction::GetKey { x: _ } => {
+                // TODO: read key
+            }
             Instruction::SetDelayTimer { x } => {
                 self.set_delay_timer(self.get_v_register(x));
                 // TODO: build timer decrementing functionality then remove the code below
@@ -195,6 +203,7 @@ impl Cpu {
         match instruction {
             Instruction::Jump { nnn: _ } => {}
             Instruction::Call { nnn: _ } => {}
+            Instruction::GetKey { x: _ } => {}
             _ => self.set_program_counter(self.get_program_counter() + 2),
         }
     }
