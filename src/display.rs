@@ -96,7 +96,7 @@ mod system {
 
     #[allow(clippy::needless_pass_by_value)]
     pub(super) fn recolor_pixels(
-        emulator: Res<crate::emulator::Emulator>,
+        emulator: Res<crate::chip8::Emulator>,
         mut query: Query<(&Pixel, &mut Sprite)>,
     ) {
         for (pixel, mut sprite) in query.iter_mut() {

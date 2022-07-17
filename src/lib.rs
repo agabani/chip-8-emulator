@@ -4,13 +4,13 @@ pub mod app;
 
 mod camera;
 
+mod chip8;
+
 mod display;
 
 mod emulator;
 
 mod editor;
-
-mod rom;
 
 mod window;
 
