@@ -23,16 +23,30 @@ impl Cpu {
 
     pub(super) fn execute(&mut self, display: &mut Display, memory: &mut Memory) {
         let instruction = Instruction::parse([
-            memory.get_byte(self.program_counter),
-            memory.get_byte(self.program_counter + 0x1),
+            memory.get_byte(self.get_program_counter()),
+            memory.get_byte(self.get_program_counter() + 0x1),
         ]);
 
         match instruction {
             Instruction::ClearScreen => display.clear_screen(),
+            Instruction::Return => {
+                let program_counter = self.pop_stack();
+                self.set_program_counter(program_counter)
+            }
             Instruction::Jump { nnn } => self.set_program_counter(nnn),
+            Instruction::Call { nnn } => {
+                self.push_stack(self.get_program_counter());
+                self.set_program_counter(nnn);
+            }
             Instruction::SetRegister { x, nn } => self.set_v_register(x, nn),
             Instruction::AddValueToRegister { x, nn } => {
                 self.set_v_register(x, self.get_v_register(x) + nn)
+            }
+            Instruction::Set { x, y } => self.set_v_register(x, self.get_v_register(y)),
+            Instruction::SkipIfNotEqual { x, y } => {
+                if self.get_v_register(x) != self.get_v_register(y) {
+                    self.set_program_counter(self.get_program_counter() + 2);
+                }
             }
             Instruction::SetIndexRegister { nnn } => self.set_index_register(nnn),
             Instruction::DisplayDraw { x, y, n } => {
@@ -82,12 +96,23 @@ impl Cpu {
                     }
                 }
             }
+            Instruction::LoadMemory { x } => {
+                for i in 0..=x {
+                    let byte = memory.get_byte(self.get_index_register() + u16::from(i));
+                    self.set_v_register(x, byte);
+                }
+            }
         }
 
         match instruction {
             Instruction::Jump { nnn: _ } => {}
-            _ => self.program_counter += 2,
+            Instruction::Call { nnn: _ } => {}
+            _ => self.set_program_counter(self.get_program_counter() + 2),
         }
+    }
+
+    fn get_program_counter(&self) -> u16 {
+        self.program_counter
     }
 
     fn set_program_counter(&mut self, program_counter: u16) {
@@ -108,5 +133,13 @@ impl Cpu {
 
     fn set_index_register(&mut self, nnn: u16) {
         self.i = nnn;
+    }
+
+    fn push_stack(&mut self, nnn: u16) {
+        self.stack.push(nnn);
+    }
+
+    fn pop_stack(&mut self) -> u16 {
+        self.stack.pop().expect("failed to pop stack")
     }
 }
