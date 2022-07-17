@@ -1,7 +1,9 @@
 use std::io::{Cursor, Read, Write};
 
+mod font;
 mod instruction;
 
+use font::Font;
 use instruction::Instruction;
 
 pub(crate) struct Emulator {
@@ -14,8 +16,6 @@ struct Display {
     /// 64 x 32 pixels monochrome, ie. black or white
     pixels: [[bool; 64]; 32],
 }
-
-struct Font(Vec<u8>);
 
 struct Memory {
     /// 16-bit index register called "I" which is used to point at locations in memory
@@ -40,7 +40,7 @@ impl Emulator {
 
         emulator
             .memory
-            .load_font(&Font::new().0)
+            .load_font(Font::new().data())
             .expect("failed to load font");
 
         emulator
@@ -135,29 +135,6 @@ impl Display {
 
     fn set_pixel(&mut self, x: u8, y: u8, value: bool) {
         self.pixels[y as usize][x as usize] = value;
-    }
-}
-
-impl Font {
-    fn new() -> Font {
-        Font(vec![
-            0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-            0x20, 0x60, 0x20, 0x20, 0x70, // 1
-            0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
-            0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
-            0x90, 0x90, 0xF0, 0x10, 0x10, // 4
-            0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
-            0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
-            0xF0, 0x10, 0x20, 0x40, 0x40, // 7
-            0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
-            0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
-            0xF0, 0x90, 0xF0, 0x90, 0x90, // A
-            0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
-            0xF0, 0x80, 0x80, 0x80, 0xF0, // C
-            0xE0, 0x90, 0x90, 0x90, 0xE0, // D
-            0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-            0xF0, 0x80, 0xF0, 0x80, 0x80, // F
-        ])
     }
 }
 
