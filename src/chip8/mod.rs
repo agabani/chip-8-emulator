@@ -1,8 +1,10 @@
 use std::io::{Cursor, Read, Write};
 
+mod display;
 mod font;
 mod instruction;
 
+use display::Display;
 use font::Font;
 use instruction::Instruction;
 
@@ -10,11 +12,6 @@ pub(crate) struct Emulator {
     display: Display,
     memory: Memory,
     paused: bool,
-}
-
-struct Display {
-    /// 64 x 32 pixels monochrome, ie. black or white
-    pixels: [[bool; 64]; 32],
 }
 
 struct Memory {
@@ -115,26 +112,6 @@ impl Emulator {
                 }
             }
         }
-    }
-}
-
-impl Display {
-    fn new() -> Display {
-        Display {
-            pixels: [[false; 64]; 32],
-        }
-    }
-
-    fn clear_screen(&mut self) {
-        self.pixels = [[false; 64]; 32];
-    }
-
-    fn is_pixel_on(&self, x: u8, y: u8) -> bool {
-        self.pixels[y as usize][x as usize]
-    }
-
-    fn set_pixel(&mut self, x: u8, y: u8, value: bool) {
-        self.pixels[y as usize][x as usize] = value;
     }
 }
 
