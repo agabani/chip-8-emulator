@@ -22,10 +22,12 @@ impl Cpu {
     }
 
     pub(super) fn execute(&mut self, display: &mut Display, memory: &mut Memory) {
-        // TODO: add conditional program counter increment based on instruction
-        let program_counter = self.program_counter;
-        self.program_counter += 2;
-        match self.fetch_instruction(&memory, program_counter) {
+        let instruction = Instruction::parse([
+            memory.get_byte(self.program_counter),
+            memory.get_byte(self.program_counter + 0x1),
+        ]);
+
+        match instruction {
             Instruction::ClearScreen => display.clear_screen(),
             Instruction::Jump { nnn } => self.set_program_counter(nnn),
             Instruction::SetRegister { x, nn } => self.set_v_register(x, nn),
@@ -81,12 +83,11 @@ impl Cpu {
                 }
             }
         }
-    }
 
-    fn fetch_instruction(&self, memory: &Memory, program_counter: u16) -> Instruction {
-        let byte1 = memory.get_byte(program_counter);
-        let byte2 = memory.get_byte(program_counter + 0x1);
-        Instruction::parse([byte1, byte2])
+        match instruction {
+            Instruction::Jump { nnn: _ } => {}
+            _ => self.program_counter += 2,
+        }
     }
 
     fn set_program_counter(&mut self, program_counter: u16) {
