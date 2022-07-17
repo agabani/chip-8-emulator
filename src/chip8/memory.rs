@@ -27,4 +27,8 @@ impl Memory {
     pub(super) fn get_byte(&self, address: u16) -> u8 {
         self.ram[address as usize]
     }
+
+    pub(super) fn set_byte(&mut self, address: u16, byte: u8) {
+        self.ram[address as usize] = byte;
+    }
 }
