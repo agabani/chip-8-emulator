@@ -56,7 +56,7 @@ mod tests {
 
     use std::io::Read;
 
-    use super::*;
+    use super::{instruction::Instruction, *};
 
     #[test]
     fn get_pixel() {
@@ -76,5 +76,78 @@ mod tests {
 
         let mut emulator = Emulator::new();
         emulator.load_rom(&rom).unwrap();
+    }
+
+    #[test]
+    fn parse_instruction() {
+        let mut rom = Vec::new();
+        let mut file = std::fs::File::open("./roms/IBM Logo.ch8").unwrap();
+        file.read_to_end(&mut rom).unwrap();
+
+        let mut memory = Memory::new();
+        memory.load_rom(&rom).unwrap();
+
+        let instructions = vec![
+            // 00000000
+            Instruction::ClearScreen,
+            Instruction::SetIndexRegister { nnn: 0x22A },
+            Instruction::SetRegister { x: 0x0, nn: 0x0C },
+            Instruction::SetRegister { x: 0x1, nn: 0x08 },
+            Instruction::DisplayDraw {
+                x: 0x0,
+                y: 0x1,
+                n: 0xF,
+            },
+            Instruction::AddValueToRegister { x: 0x0, nn: 0x09 },
+            Instruction::SetIndexRegister { nnn: 0x239 },
+            Instruction::DisplayDraw {
+                x: 0x0,
+                y: 0x1,
+                n: 0xF,
+            },
+            // 00000010
+            Instruction::SetIndexRegister { nnn: 0x248 },
+            Instruction::AddValueToRegister { x: 0x0, nn: 0x08 },
+            Instruction::DisplayDraw {
+                x: 0x0,
+                y: 0x1,
+                n: 0xF,
+            },
+            Instruction::AddValueToRegister { x: 0x0, nn: 0x04 },
+            Instruction::SetIndexRegister { nnn: 0x257 },
+            Instruction::DisplayDraw {
+                x: 0x0,
+                y: 0x1,
+                n: 0xF,
+            },
+            Instruction::AddValueToRegister { x: 0x0, nn: 0x08 },
+            Instruction::SetIndexRegister { nnn: 0x266 },
+            // 00000020
+            Instruction::DisplayDraw {
+                x: 0x0,
+                y: 0x1,
+                n: 0xF,
+            },
+            Instruction::AddValueToRegister { x: 0x0, nn: 0x08 },
+            Instruction::SetIndexRegister { nnn: 0x275 },
+            Instruction::DisplayDraw {
+                x: 0x0,
+                y: 0x1,
+                n: 0xF,
+            },
+            Instruction::Jump { nnn: 0x228 },
+        ];
+
+        for (index, instruction) in instructions.into_iter().enumerate() {
+            let byte1 = memory.get_byte((0x200 + index * 2) as u16);
+            let byte2 = memory.get_byte((0x200 + index * 2 + 1) as u16);
+
+            assert_eq!(
+                Instruction::parse([byte1, byte2]),
+                instruction,
+                "instruction {}",
+                index
+            );
+        }
     }
 }

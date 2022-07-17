@@ -25,8 +25,7 @@ impl Cpu {
         // TODO: add conditional program counter increment based on instruction
         let program_counter = self.program_counter;
         self.program_counter += 2;
-
-        match memory.get_instruction(program_counter) {
+        match self.fetch_instruction(&memory, program_counter) {
             Instruction::ClearScreen => display.clear_screen(),
             Instruction::Jump { nnn } => self.set_program_counter(nnn),
             Instruction::SetRegister { x, nn } => self.set_v_register(x, nn),
@@ -46,8 +45,7 @@ impl Cpu {
                 // For N rows
                 for row in 0..n {
                     // Get the Nth byte of sprite data, counting from the memory address in the I register
-                    let sprite_data =
-                        memory.get_ram_byte(self.get_index_register() as usize + row as usize);
+                    let sprite_data = memory.get_byte(self.get_index_register() + u16::from(row));
 
                     // For each of the 8 pixels/bits in this sprite row
                     for pixel in 0..8 {
@@ -83,6 +81,12 @@ impl Cpu {
                 }
             }
         }
+    }
+
+    fn fetch_instruction(&self, memory: &Memory, program_counter: u16) -> Instruction {
+        let byte1 = memory.get_byte(program_counter);
+        let byte2 = memory.get_byte(program_counter + 0x1);
+        Instruction::parse([byte1, byte2])
     }
 
     fn set_program_counter(&mut self, program_counter: u16) {
