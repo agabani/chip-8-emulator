@@ -53,7 +53,7 @@ pub(crate) mod system {
         }
     }
 
-    pub(crate) fn fetch_decode_execute(mut emulator: ResMut<crate::chip8::Emulator>) {
-        emulator.fetch_decode_execute();
+    pub(crate) fn emulate(mut emulator: ResMut<crate::chip8::Emulator>) {
+        emulator.emulate();
     }
 }

@@ -33,6 +33,14 @@ impl Emulator {
         emulator
     }
 
+    pub(crate) fn emulate(&mut self) {
+        if self.paused {
+            return;
+        }
+
+        self.cpu.execute(&mut self.display, &mut self.memory);
+    }
+
     pub(crate) fn is_pixel_on(&self, x: u8, y: u8) -> bool {
         self.display.is_pixel_on(x, y)
     }
@@ -40,14 +48,6 @@ impl Emulator {
     pub(crate) fn load_rom(&mut self, rom: &[u8]) -> crate::Result<()> {
         self.paused = false;
         self.memory.load_rom(rom)
-    }
-
-    pub(crate) fn fetch_decode_execute(&mut self) {
-        if self.paused {
-            return;
-        }
-
-        self.cpu.execute(&mut self.display, &mut self.memory);
     }
 }
 
