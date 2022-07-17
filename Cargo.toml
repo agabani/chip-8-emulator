@@ -15,6 +15,7 @@ lto = "thin"
 [dependencies]
 bevy = "0.7"
 bevy_editor_pls = { git = "https://github.com/jakobhellermann/bevy_editor_pls.git", optional = true }
+rand = "0.8.5"
 
 [features]
 dynamic = ["bevy/dynamic"]

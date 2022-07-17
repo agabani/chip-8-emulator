@@ -86,14 +86,16 @@ impl Cpu {
                 }
             }
             Instruction::SubtractRightFromLeft { x, y } => {
-                let (nn, overflow) = self
-                    .get_v_register(x)
-                    .overflowing_sub(self.get_v_register(y));
-                if overflow && self.get_v_register(x) > self.get_v_register(y) {
+                if self.get_v_register(x) > self.get_v_register(y) {
                     self.set_v_register(0xF, 1);
                 } else {
                     self.set_v_register(0xF, 0);
                 }
+
+                let (nn, _) = self
+                    .get_v_register(x)
+                    .overflowing_sub(self.get_v_register(y));
+
                 self.set_v_register(x, nn);
             }
             Instruction::ShiftRight { x, y } => {
@@ -128,6 +130,9 @@ impl Cpu {
                 }
             }
             Instruction::SetIndexRegister { nnn } => self.set_index_register(nnn),
+            Instruction::Random { x, nn } => {
+                self.set_v_register(x, rand::random::<u8>() & nn);
+            }
             Instruction::DisplayDraw { x, y, n } => {
                 // Set the X coordinate to the value in VX modulo 64
                 let x = self.get_v_register(x) % 64;
@@ -193,6 +198,7 @@ impl Cpu {
             }
             Instruction::AddToIndex { x } => self
                 .set_index_register(self.get_index_register() + u16::from(self.get_v_register(x))),
+            Instruction::LoadFont { x } => self.set_index_register(0x050 + u16::from(x) * 0x5),
             Instruction::BinaryCodedDecimalConversion { x } => {
                 let n = self.get_v_register(x);
                 let d3 = n % 10;
