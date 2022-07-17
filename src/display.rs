@@ -83,11 +83,12 @@ mod system {
                             })
                             .insert(Name::new(format!(
                                 "pixel x:{:0>2} y:{:0>2}",
-                                pixel_x, pixel_y
+                                pixel_x,
+                                pixels_y - pixel_y - 1
                             )))
                             .insert(Pixel {
                                 x: pixel_x,
-                                y: pixel_y,
+                                y: pixels_y - pixel_y - 1,
                             });
                     }
                 }

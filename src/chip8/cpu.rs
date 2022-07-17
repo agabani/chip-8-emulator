@@ -149,19 +149,19 @@ impl Cpu {
                             0 => false,
                             v => panic!("{}", v),
                         };
-                        let display_pixel = display.is_pixel_on(x + pixel, y + n - row);
+                        let display_pixel = display.is_pixel_on(x + pixel, y + row);
 
                         // If the current pixel in the sprite row is on and the pixel at coordinates X,Y on the screen is also on
                         if sprite_row_pixel && display_pixel {
                             // turn off the pixel
-                            display.set_pixel(x + pixel, y + n - row, false);
+                            display.set_pixel(x + pixel, y + row, false);
                             // set VF to 1
                             self.set_v_register(0xF, 1);
                         }
                         // Or if the current pixel in the sprite row is on and the screen pixel is not
                         else if sprite_row_pixel && !display_pixel {
                             // draw the pixel at the X and Y coordinates
-                            display.set_pixel(x + pixel, y + n - row, sprite_row_pixel);
+                            display.set_pixel(x + pixel, y + row, sprite_row_pixel);
                         }
 
                         // If you reach the right edge of the screen, stop drawing this row
