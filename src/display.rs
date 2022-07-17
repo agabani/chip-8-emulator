@@ -52,7 +52,11 @@ mod system {
 
         commands
             .spawn()
-            .insert_bundle(TransformBundle::identity())
+            .insert_bundle(TransformBundle::from_transform(Transform::from_xyz(
+                -display_size.x / 2.0 + pixel_size.x - pixel_padding_size * 2.0,
+                -display_size.y / 2.0 + pixel_size.y - pixel_padding_size * 2.0,
+                0.0,
+            )))
             .insert(Name::new("display"))
             .with_children(|display| {
                 for pixel_y in 0..pixels_y {
