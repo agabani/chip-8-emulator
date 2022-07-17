@@ -3,27 +3,13 @@ use std::io::{Cursor, Read, Write};
 use super::instruction::Instruction;
 
 pub(super) struct Memory {
-    /// 16-bit index register called "I" which is used to point at locations in memory
-    i: u16,
-    /// A program counter, often called just "PC", which points to the current instruction in memory
-    program_counter: u16,
     /// Memory: CHIP-8 has direct access to up to 4 kilobytes of RAM
     ram: Vec<u8>,
-    /// A stack for 16-bit addresses which is used to call subroutines/function and return from them
-    stack: Vec<u16>,
-    /// 16 8-bit general purpose variable registers numbered `0` through `F`, called `V0` through `VF`
-    v: [u8; 16],
 }
 
 impl Memory {
     pub(super) fn new() -> Memory {
-        Memory {
-            i: 0,
-            program_counter: 0,
-            ram: vec![0; 4096],
-            stack: Vec::new(),
-            v: [0; 16],
-        }
+        Memory { ram: vec![0; 4096] }
     }
 
     pub(super) fn load_font(&mut self, font: &[u8]) -> crate::Result<()> {
@@ -36,14 +22,13 @@ impl Memory {
     pub(super) fn load_rom(&mut self, rom: &[u8]) -> crate::Result<()> {
         let mut cursor = Cursor::new(&mut self.ram);
         cursor.set_position(0x200);
-        self.program_counter = 0x200;
         cursor.write_all(rom)?;
         Ok(())
     }
 
-    pub(super) fn get_instruction(&mut self) -> Instruction {
+    pub(super) fn get_instruction(&mut self, program_counter: u16) -> Instruction {
         let mut cursor = Cursor::new(&self.ram);
-        cursor.set_position(u64::from(self.program_counter));
+        cursor.set_position(u64::from(program_counter));
 
         let mut buf = [0; 2];
         cursor.read_exact(&mut buf).unwrap();
@@ -54,8 +39,6 @@ impl Memory {
             (buf[1] & 0xF0) >> 4,
             buf[1] & 0x0F,
         ];
-
-        self.program_counter = cursor.position() as u16;
 
         match nibbles {
             [0x0, 0x0, 0xE, 0x0] => Instruction::ClearScreen,
@@ -80,26 +63,6 @@ impl Memory {
             },
             [n1, n2, n3, n4] => todo!("{:1X} {:1X} {:1X} {:1X}", n1, n2, n3, n4),
         }
-    }
-
-    pub(super) fn set_program_counter(&mut self, program_counter: u16) {
-        self.program_counter = program_counter;
-    }
-
-    pub(super) fn get_v_register(&self, x: u8) -> u8 {
-        self.v[x as usize]
-    }
-
-    pub(super) fn set_v_register(&mut self, x: u8, nn: u8) {
-        self.v[x as usize] = nn;
-    }
-
-    pub(super) fn get_index_register(&self) -> u16 {
-        self.i
-    }
-
-    pub(super) fn set_index_register(&mut self, nnn: u16) {
-        self.i = nnn;
     }
 
     pub(super) fn get_ram_byte(&self, address: usize) -> u8 {
@@ -176,7 +139,7 @@ mod tests {
 
         for (index, instruction) in instructions.into_iter().enumerate() {
             assert_eq!(
-                memory.get_instruction(),
+                memory.get_instruction((0x200 + index * 2) as u16),
                 instruction,
                 "instruction {}",
                 index

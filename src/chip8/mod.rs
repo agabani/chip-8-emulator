@@ -1,14 +1,16 @@
+mod cpu;
 mod display;
 mod font;
 mod instruction;
 mod memory;
 
+use cpu::Cpu;
 use display::Display;
 use font::Font;
-use instruction::Instruction;
 use memory::Memory;
 
 pub(crate) struct Emulator {
+    cpu: Cpu,
     display: Display,
     memory: Memory,
     paused: bool,
@@ -17,9 +19,10 @@ pub(crate) struct Emulator {
 impl Emulator {
     pub(crate) fn new() -> Emulator {
         let mut emulator = Emulator {
-            paused: true,
+            cpu: Cpu::new(),
             display: Display::new(),
             memory: Memory::new(),
+            paused: true,
         };
 
         emulator
@@ -44,65 +47,7 @@ impl Emulator {
             return;
         }
 
-        match self.memory.get_instruction() {
-            Instruction::ClearScreen => self.display.clear_screen(),
-            Instruction::Jump { nnn } => self.memory.set_program_counter(nnn),
-            Instruction::SetRegister { x, nn } => self.memory.set_v_register(x, nn),
-            Instruction::AddValueToRegister { x, nn } => self
-                .memory
-                .set_v_register(x, self.memory.get_v_register(x) + nn),
-            Instruction::SetIndexRegister { nnn } => self.memory.set_index_register(nnn),
-            Instruction::DisplayDraw { x, y, n } => {
-                // Set the X coordinate to the value in VX modulo 64
-                let x = self.memory.get_v_register(x) % 64;
-                // Set the Y coordinate to the value in VY modulo 32
-                let y = self.memory.get_v_register(y) % 32;
-
-                // Set VF to 0
-                self.memory.set_v_register(0xF, 0);
-
-                // For N rows
-                for row in 0..n {
-                    // Get the Nth byte of sprite data, counting from the memory address in the I register
-                    let sprite_data = self
-                        .memory
-                        .get_ram_byte(self.memory.get_index_register() as usize + row as usize);
-
-                    // For each of the 8 pixels/bits in this sprite row
-                    for pixel in 0..8 {
-                        let sprite_row_pixel = match (sprite_data >> (7 - pixel)) & 0x1 {
-                            1 => true,
-                            0 => false,
-                            v => panic!("{}", v),
-                        };
-                        let display_pixel = self.display.is_pixel_on(x + pixel, y + n - row);
-
-                        // If the current pixel in the sprite row is on and the pixel at coordinates X,Y on the screen is also on
-                        if sprite_row_pixel && display_pixel {
-                            // turn off the pixel
-                            self.display.set_pixel(x + pixel, y + n - row, false);
-                            // set VF to 1
-                            self.memory.set_v_register(0xF, 1);
-                        }
-                        // Or if the current pixel in the sprite row is on and the screen pixel is not
-                        else if sprite_row_pixel && !display_pixel {
-                            // draw the pixel at the X and Y coordinates
-                            self.display
-                                .set_pixel(x + pixel, y + n - row, sprite_row_pixel);
-                        }
-
-                        // If you reach the right edge of the screen, stop drawing this row
-                        if x + pixel == 63 {
-                            break;
-                        };
-                    }
-
-                    if y + row == 31 {
-                        break;
-                    }
-                }
-            }
-        }
+        self.cpu.execute(&mut self.display, &mut self.memory);
     }
 }
 
