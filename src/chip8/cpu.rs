@@ -1,6 +1,7 @@
 use super::{display::Display, instruction::Instruction, memory::Memory};
 
 pub(super) struct Cpu {
+    delay_timer: u8,
     /// 16-bit index register called "I" which is used to point at locations in memory
     i: u16,
     /// A program counter, often called just "PC", which points to the current instruction in memory
@@ -14,6 +15,7 @@ pub(super) struct Cpu {
 impl Cpu {
     pub(super) fn new() -> Cpu {
         Cpu {
+            delay_timer: 0,
             i: 0,
             program_counter: 0x200,
             stack: Vec::new(),
@@ -38,12 +40,43 @@ impl Cpu {
                 self.push_stack(self.get_program_counter());
                 self.set_program_counter(nnn);
             }
+            Instruction::SkipIfNotEqual1 { x, nn } => {
+                if self.get_v_register(x) != nn {
+                    self.set_program_counter(self.get_program_counter() + 2);
+                }
+            }
             Instruction::SetRegister { x, nn } => self.set_v_register(x, nn),
             Instruction::AddValueToRegister { x, nn } => {
                 self.set_v_register(x, self.get_v_register(x) + nn)
             }
             Instruction::Set { x, y } => self.set_v_register(x, self.get_v_register(y)),
-            Instruction::SkipIfNotEqual { x, y } => {
+            Instruction::ShiftRight { x, y } => {
+                // (Optional, or configurable) Set VX to the value of VY
+                self.set_v_register(x, self.get_v_register(y));
+                // Shift the value of VX one bit to the right
+                let shifted_out = (self.get_v_register(x) & 0x8) >> 3;
+                self.set_v_register(x, self.get_v_register(x) << 0x1);
+                // Set VF to 1 if the bit that was shifted out was 1, or 0 if it was 0
+                match shifted_out {
+                    1 => self.set_v_register(0xF, 1),
+                    0 => self.set_v_register(0xF, 0),
+                    i => panic!("{}", i),
+                };
+            }
+            Instruction::ShiftLeft { x, y } => {
+                // (Optional, or configurable) Set VX to the value of VY
+                self.set_v_register(x, self.get_v_register(y));
+                // Shift the value of VX one bit to the left
+                let shifted_out = self.get_v_register(x) & 0x1;
+                self.set_v_register(x, self.get_v_register(x) >> 0x1);
+                // Set VF to 1 if the bit that was shifted out was 1, or 0 if it was 0
+                match shifted_out {
+                    1 => self.set_v_register(0xF, 1),
+                    0 => self.set_v_register(0xF, 0),
+                    i => panic!("{}", i),
+                };
+            }
+            Instruction::SkipIfNotEqual2 { x, y } => {
                 if self.get_v_register(x) != self.get_v_register(y) {
                     self.set_program_counter(self.get_program_counter() + 2);
                 }
@@ -96,6 +129,9 @@ impl Cpu {
                     }
                 }
             }
+            Instruction::SetDelayTimer { x } => self.set_delay_timer(self.get_v_register(x)),
+            Instruction::AddToIndex { x } => self
+                .set_index_register(self.get_index_register() + u16::from(self.get_v_register(x))),
             Instruction::LoadMemory { x } => {
                 for i in 0..=x {
                     let byte = memory.get_byte(self.get_index_register() + u16::from(i));
@@ -109,6 +145,10 @@ impl Cpu {
             Instruction::Call { nnn: _ } => {}
             _ => self.set_program_counter(self.get_program_counter() + 2),
         }
+    }
+
+    fn set_delay_timer(&mut self, n: u8) {
+        self.delay_timer = n;
     }
 
     fn get_program_counter(&self) -> u16 {

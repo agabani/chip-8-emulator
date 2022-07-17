@@ -8,18 +8,28 @@ pub(super) enum Instruction {
     Jump { nnn: u16 },
     /// 2NNN
     Call { nnn: u16 },
+    /// 4XNN
+    SkipIfNotEqual1 { x: u8, nn: u8 },
     /// 6XNN
     SetRegister { x: u8, nn: u8 },
     /// 7XNN
     AddValueToRegister { x: u8, nn: u8 },
     /// 8XY0
     Set { x: u8, y: u8 },
+    /// 8XY6
+    ShiftRight { x: u8, y: u8 },
+    /// 8XYE
+    ShiftLeft { x: u8, y: u8 },
     /// 9XY0
-    SkipIfNotEqual { x: u8, y: u8 },
+    SkipIfNotEqual2 { x: u8, y: u8 },
     /// ANNN
     SetIndexRegister { nnn: u16 },
     /// DXYN
     DisplayDraw { x: u8, y: u8, n: u8 },
+    /// FX15
+    SetDelayTimer { x: u8 },
+    /// FX1E
+    AddToIndex { x: u8 },
     /// FX65
     LoadMemory { x: u8 },
 }
@@ -42,6 +52,10 @@ impl Instruction {
             [0x2, n2, n3, n4] => Instruction::Call {
                 nnn: (u16::from(n2) << 8) + (u16::from(n3) << 4) + (u16::from(n4)),
             },
+            [0x4, n2, n3, n4] => Instruction::SkipIfNotEqual1 {
+                x: n2,
+                nn: (n3 << 4) + n4,
+            },
             [0x6, n2, n3, n4] => Instruction::SetRegister {
                 x: n2,
                 nn: (n3 << 4) + n4,
@@ -51,7 +65,9 @@ impl Instruction {
                 nn: (n3 << 4) + n4,
             },
             [0x8, n2, n3, 0x0] => Instruction::Set { x: n2, y: n3 },
-            [0x9, n2, n3, 0x0] => Instruction::SkipIfNotEqual { x: n2, y: n3 },
+            [0x8, n2, n3, 0x6] => Instruction::ShiftRight { x: n2, y: n3 },
+            [0x8, n2, n3, 0xE] => Instruction::ShiftLeft { x: n2, y: n3 },
+            [0x9, n2, n3, 0x0] => Instruction::SkipIfNotEqual2 { x: n2, y: n3 },
             [0xA, n2, n3, n4] => Instruction::SetIndexRegister {
                 nnn: (u16::from(n2) << 8) + (u16::from(n3) << 4) + (u16::from(n4)),
             },
@@ -60,6 +76,8 @@ impl Instruction {
                 y: n3,
                 n: n4,
             },
+            [0xF, n2, 0x1, 0x5] => Instruction::SetDelayTimer { x: n2 },
+            [0xF, n2, 0x1, 0xE] => Instruction::AddToIndex { x: n2 },
             [0xF, n2, 0x6, 0x5] => Instruction::LoadMemory { x: n2 },
             [n1, n2, n3, n4] => todo!("{:1X} {:1X} {:1X} {:1X}", n1, n2, n3, n4),
         }
