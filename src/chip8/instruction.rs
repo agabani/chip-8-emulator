@@ -20,8 +20,12 @@ pub(super) enum Instruction {
     AddValueToRegister { x: u8, nn: u8 },
     /// 8XY0
     Set { x: u8, y: u8 },
+    /// 8XY1
+    BinaryOr { x: u8, y: u8 },
     /// 8XY2
     BinaryAnd { x: u8, y: u8 },
+    /// 8XY3
+    LogicalXor { x: u8, y: u8 },
     /// 8XY4
     Add { x: u8, y: u8 },
     /// 8XY5
@@ -46,6 +50,8 @@ pub(super) enum Instruction {
     SetSoundTimer { x: u8 },
     /// FX1E
     AddToIndex { x: u8 },
+    /// FX33
+    BinaryCodedDecimalConversion { x: u8 },
     /// FX55
     StoreMemory { x: u8 },
     /// FX65
@@ -88,7 +94,9 @@ impl Instruction {
                 nn: (n3 << 4) + n4,
             },
             [0x8, n2, n3, 0x0] => Instruction::Set { x: n2, y: n3 },
+            [0x8, n2, n3, 0x1] => Instruction::BinaryOr { x: n2, y: n3 },
             [0x8, n2, n3, 0x2] => Instruction::BinaryAnd { x: n2, y: n3 },
+            [0x8, n2, n3, 0x3] => Instruction::LogicalXor { x: n2, y: n3 },
             [0x8, n2, n3, 0x4] => Instruction::Add { x: n2, y: n3 },
             [0x8, n2, n3, 0x5] => Instruction::SubtractRightFromLeft { x: n2, y: n3 },
             [0x8, n2, n3, 0x6] => Instruction::ShiftRight { x: n2, y: n3 },
@@ -107,6 +115,7 @@ impl Instruction {
             [0xF, n2, 0x1, 0x5] => Instruction::SetDelayTimer { x: n2 },
             [0xF, n2, 0x1, 0x8] => Instruction::SetSoundTimer { x: n2 },
             [0xF, n2, 0x1, 0xE] => Instruction::AddToIndex { x: n2 },
+            [0xF, n2, 0x3, 0x3] => Instruction::BinaryCodedDecimalConversion { x: n2 },
             [0xF, n2, 0x5, 0x5] => Instruction::StoreMemory { x: n2 },
             [0xF, n2, 0x6, 0x5] => Instruction::LoadMemory { x: n2 },
             [n1, n2, n3, n4] => todo!("{:1X} {:1X} {:1X} {:1X}", n1, n2, n3, n4),

@@ -66,6 +66,12 @@ impl Cpu {
             Instruction::BinaryAnd { x, y } => {
                 self.set_v_register(x, self.get_v_register(x) & self.get_v_register(y))
             }
+            Instruction::BinaryOr { x, y } => {
+                self.set_v_register(x, self.get_v_register(x) | self.get_v_register(y))
+            }
+            Instruction::LogicalXor { x, y } => {
+                self.set_v_register(x, self.get_v_register(x) ^ self.get_v_register(y))
+            }
             Instruction::Add { x, y } => {
                 let (nn, overflow) = self
                     .get_v_register(x)
@@ -187,6 +193,17 @@ impl Cpu {
             }
             Instruction::AddToIndex { x } => self
                 .set_index_register(self.get_index_register() + u16::from(self.get_v_register(x))),
+            Instruction::BinaryCodedDecimalConversion { x } => {
+                let n = self.get_v_register(x);
+                let d3 = n % 10;
+                let n = n / 10;
+                let d2 = n % 10;
+                let n = n / 10;
+                let d1 = n;
+                memory.set_byte(self.get_index_register() + 0x0, d1);
+                memory.set_byte(self.get_index_register() + 0x1, d2);
+                memory.set_byte(self.get_index_register() + 0x2, d3);
+            }
             Instruction::StoreMemory { x } => {
                 for i in 0..=x {
                     memory.set_byte(
