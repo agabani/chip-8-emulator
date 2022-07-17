@@ -44,17 +44,17 @@ impl Cpu {
             }
             Instruction::SkipIfEqual1 { x, nn } => {
                 if self.get_v_register(x) == nn {
-                    self.set_program_counter(self.get_program_counter() + 2);
+                    self.increment_program_counter();
                 }
             }
             Instruction::SkipIfNotEqual1 { x, nn } => {
                 if self.get_v_register(x) != nn {
-                    self.set_program_counter(self.get_program_counter() + 2);
+                    self.increment_program_counter();
                 }
             }
             Instruction::SkipIfEqual2 { x, y } => {
                 if self.get_v_register(x) == self.get_v_register(y) {
-                    self.set_program_counter(self.get_program_counter() + 2);
+                    self.increment_program_counter();
                 }
             }
             Instruction::SetRegister { x, nn } => self.set_v_register(x, nn),
@@ -67,10 +67,13 @@ impl Cpu {
                 self.set_v_register(x, self.get_v_register(x) & self.get_v_register(y))
             }
             Instruction::Add { x, y } => {
-                let result = u16::from(self.get_v_register(x)) + u16::from(self.get_v_register(y));
-                self.set_v_register(x, (result & 0xFF) as u8);
+                let (nn, overflow) = self
+                    .get_v_register(x)
+                    .overflowing_add(self.get_v_register(y));
 
-                if result > 0xFF {
+                self.set_v_register(x, nn);
+
+                if overflow {
                     self.set_v_register(0xF, 1);
                 } else {
                     self.set_v_register(0xF, 0);
@@ -91,31 +94,31 @@ impl Cpu {
                 // (Optional, or configurable) Set VX to the value of VY
                 self.set_v_register(x, self.get_v_register(y));
                 // Shift the value of VX one bit to the right
-                let shifted_out = (self.get_v_register(x) & 0x8) >> 3;
-                self.set_v_register(x, self.get_v_register(x) << 0x1);
+                let (nn, overflow) = self.get_v_register(x).overflowing_shr(1);
+                self.set_v_register(x, nn);
                 // Set VF to 1 if the bit that was shifted out was 1, or 0 if it was 0
-                match shifted_out {
-                    1 => self.set_v_register(0xF, 1),
-                    0 => self.set_v_register(0xF, 0),
-                    i => panic!("{}", i),
-                };
+                if overflow {
+                    self.set_v_register(0xF, 1);
+                } else {
+                    self.set_v_register(0xF, 0);
+                }
             }
             Instruction::ShiftLeft { x, y } => {
                 // (Optional, or configurable) Set VX to the value of VY
                 self.set_v_register(x, self.get_v_register(y));
                 // Shift the value of VX one bit to the left
-                let shifted_out = self.get_v_register(x) & 0x1;
-                self.set_v_register(x, self.get_v_register(x) >> 0x1);
+                let (nn, overflow) = self.get_v_register(x).overflowing_shl(1);
+                self.set_v_register(x, nn);
                 // Set VF to 1 if the bit that was shifted out was 1, or 0 if it was 0
-                match shifted_out {
-                    1 => self.set_v_register(0xF, 1),
-                    0 => self.set_v_register(0xF, 0),
-                    i => panic!("{}", i),
-                };
+                if overflow {
+                    self.set_v_register(0xF, 1);
+                } else {
+                    self.set_v_register(0xF, 0);
+                }
             }
             Instruction::SkipIfNotEqual2 { x, y } => {
                 if self.get_v_register(x) != self.get_v_register(y) {
-                    self.set_program_counter(self.get_program_counter() + 2);
+                    self.increment_program_counter();
                 }
             }
             Instruction::SetIndexRegister { nnn } => self.set_index_register(nnn),
@@ -204,7 +207,7 @@ impl Cpu {
             Instruction::Jump { nnn: _ } => {}
             Instruction::Call { nnn: _ } => {}
             Instruction::GetKey { x: _ } => {}
-            _ => self.set_program_counter(self.get_program_counter() + 2),
+            _ => self.increment_program_counter(),
         }
     }
 
@@ -226,6 +229,10 @@ impl Cpu {
 
     fn set_program_counter(&mut self, program_counter: u16) {
         self.program_counter = program_counter;
+    }
+
+    fn increment_program_counter(&mut self) {
+        self.program_counter += 2;
     }
 
     fn get_v_register(&self, x: u8) -> u8 {
