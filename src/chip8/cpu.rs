@@ -1,4 +1,6 @@
-use super::{display::Display, instruction::Instruction, memory::Memory, timer::Timer};
+use super::{
+    display::Display, instruction::Instruction, keypad::Keypad, memory::Memory, timer::Timer,
+};
 
 pub(super) struct Cpu {
     delay_timer: Timer,
@@ -25,7 +27,7 @@ impl Cpu {
         }
     }
 
-    pub(super) fn execute(&mut self, display: &mut Display, memory: &mut Memory) {
+    pub(super) fn execute(&mut self, display: &mut Display, keypad: &Keypad, memory: &mut Memory) {
         let instruction = Instruction::parse([
             memory.get_byte(self.get_program_counter()),
             memory.get_byte(self.get_program_counter() + 0x1),
@@ -36,6 +38,9 @@ impl Cpu {
             Instruction::Return => {
                 let program_counter = self.pop_stack();
                 self.set_program_counter(program_counter);
+            }
+            Instruction::SystemAddress { nnn: _ } => {
+                // do nothing
             }
             Instruction::Jump { nnn } => self.set_program_counter(nnn),
             Instruction::Call { nnn } => {
@@ -130,6 +135,9 @@ impl Cpu {
                 }
             }
             Instruction::SetIndexRegister { nnn } => self.set_index_register(nnn),
+            Instruction::JumpWithOffset { nnn } => {
+                self.set_program_counter(nnn + u16::from(self.get_v_register(0x0)));
+            }
             Instruction::Random { x, nn } => {
                 self.set_v_register(x, rand::random::<u8>() & nn);
             }
@@ -183,8 +191,11 @@ impl Cpu {
             Instruction::SetCurrentDelayTimerValueToRegister { x } => {
                 self.set_v_register(x, self.get_delay_timer());
             }
-            Instruction::GetKey { x: _ } => {
-                // TODO: read key
+            Instruction::GetKey { x } => {
+                if let Some(n) = keypad.read() {
+                    self.set_v_register(x, n);
+                    self.increment_program_counter();
+                }
             }
             Instruction::SetDelayTimer { x } => {
                 self.set_delay_timer(self.get_v_register(x));
@@ -225,6 +236,7 @@ impl Cpu {
         match instruction {
             Instruction::Jump { nnn: _ }
             | Instruction::Call { nnn: _ }
+            | Instruction::JumpWithOffset { nnn: _ }
             | Instruction::GetKey { x: _ } => {}
             _ => self.increment_program_counter(),
         }

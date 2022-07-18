@@ -2,18 +2,21 @@ mod cpu;
 mod display;
 mod font;
 mod instruction;
+pub(crate) mod keypad;
 mod memory;
 mod timer;
 
 use cpu::Cpu;
 use display::Display;
 use font::Font;
+use keypad::Keypad;
 use memory::Memory;
 
 pub(crate) struct Emulator {
     cpu: Cpu,
     display: Display,
     execute_interval: std::time::Duration,
+    keypad: Keypad,
     memory: Memory,
     paused: bool,
     time: std::time::Duration,
@@ -25,6 +28,7 @@ impl Emulator {
             cpu: Cpu::new(),
             display: Display::new(),
             execute_interval: std::time::Duration::from_secs(1) / 700,
+            keypad: Keypad::new(),
             memory: Memory::new(),
             paused: true,
             time: std::time::Duration::ZERO,
@@ -53,7 +57,8 @@ impl Emulator {
         let delta_executions = target_executions - current_executions;
 
         for _ in 0..delta_executions {
-            self.cpu.execute(&mut self.display, &mut self.memory);
+            self.cpu
+                .execute(&mut self.display, &self.keypad, &mut self.memory);
         }
 
         self.time = target_time;
@@ -61,6 +66,14 @@ impl Emulator {
 
     pub(crate) fn is_pixel_on(&self, x: u8, y: u8) -> bool {
         self.display.is_pixel_on(x, y)
+    }
+
+    pub(crate) fn key_pressed(&mut self, key: keypad::Key) {
+        self.keypad.pressed(key);
+    }
+
+    pub(crate) fn key_released(&mut self, key: keypad::Key) {
+        self.keypad.released(key);
     }
 
     pub(crate) fn load_rom(&mut self, rom: &[u8]) -> crate::Result<()> {

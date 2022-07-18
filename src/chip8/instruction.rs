@@ -4,6 +4,8 @@ pub(super) enum Instruction {
     ClearScreen,
     /// 00EE
     Return,
+    /// 0NNN
+    SystemAddress { nnn: u16 },
     /// 1NNN
     Jump { nnn: u16 },
     /// 2NNN
@@ -38,6 +40,8 @@ pub(super) enum Instruction {
     SkipIfNotEqual2 { x: u8, y: u8 },
     /// ANNN
     SetIndexRegister { nnn: u16 },
+    /// BNNN
+    JumpWithOffset { nnn: u16 },
     /// CXNN
     Random { x: u8, nn: u8 },
     /// DXYN
@@ -74,6 +78,9 @@ impl Instruction {
         match nibbles {
             [0x0, 0x0, 0xE, 0x0] => Instruction::ClearScreen,
             [0x0, 0x0, 0xE, 0xE] => Instruction::Return,
+            [0x0, n2, n3, n4] => Instruction::SystemAddress {
+                nnn: (u16::from(n2) << 8) + (u16::from(n3) << 4) + (u16::from(n4)),
+            },
             [0x1, n2, n3, n4] => Instruction::Jump {
                 nnn: (u16::from(n2) << 8) + (u16::from(n3) << 4) + (u16::from(n4)),
             },
@@ -107,6 +114,9 @@ impl Instruction {
             [0x8, n2, n3, 0xE] => Instruction::ShiftLeft { x: n2, y: n3 },
             [0x9, n2, n3, 0x0] => Instruction::SkipIfNotEqual2 { x: n2, y: n3 },
             [0xA, n2, n3, n4] => Instruction::SetIndexRegister {
+                nnn: (u16::from(n2) << 8) + (u16::from(n3) << 4) + (u16::from(n4)),
+            },
+            [0xB, n2, n3, n4] => Instruction::JumpWithOffset {
                 nnn: (u16::from(n2) << 8) + (u16::from(n3) << 4) + (u16::from(n4)),
             },
             [0xC, n2, n3, n4] => Instruction::Random {

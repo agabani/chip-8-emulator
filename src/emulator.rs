@@ -28,7 +28,8 @@ pub(crate) mod plugin {
     impl bevy::prelude::Plugin for Plugin {
         fn build(&self, app: &mut bevy::prelude::App) {
             app.add_system(system::drag_and_drop_rom)
-                .add_system(system::emulate);
+                .add_system(system::emulate)
+                .add_system(system::keyboard);
         }
     }
 }
@@ -69,5 +70,38 @@ mod system {
     #[allow(clippy::needless_pass_by_value)]
     pub(super) fn emulate(time: Res<Time>, mut emulator: ResMut<crate::chip8::Emulator>) {
         emulator.emulate(&time.delta());
+    }
+
+    pub(super) fn keyboard(
+        keys: Res<Input<KeyCode>>,
+        mut emulator: ResMut<crate::chip8::Emulator>,
+    ) {
+        use crate::chip8::keypad::Key;
+
+        for (keyboard, keypad) in [
+            (KeyCode::X, Key::Key0),
+            (KeyCode::Key1, Key::Key1),
+            (KeyCode::Key2, Key::Key2),
+            (KeyCode::Key3, Key::Key3),
+            (KeyCode::Q, Key::Key4),
+            (KeyCode::W, Key::Key5),
+            (KeyCode::E, Key::Key6),
+            (KeyCode::A, Key::Key7),
+            (KeyCode::S, Key::Key8),
+            (KeyCode::D, Key::Key9),
+            (KeyCode::Z, Key::A),
+            (KeyCode::C, Key::B),
+            (KeyCode::Key4, Key::C),
+            (KeyCode::R, Key::D),
+            (KeyCode::F, Key::E),
+            (KeyCode::V, Key::F),
+        ] {
+            if keys.just_pressed(keyboard) {
+                emulator.key_pressed(keypad);
+            }
+            if keys.just_released(keyboard) {
+                emulator.key_released(keypad);
+            }
+        }
     }
 }
