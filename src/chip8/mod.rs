@@ -12,8 +12,10 @@ use memory::Memory;
 pub(crate) struct Emulator {
     cpu: Cpu,
     display: Display,
+    execute_interval: std::time::Duration,
     memory: Memory,
     paused: bool,
+    time: std::time::Duration,
 }
 
 impl Emulator {
@@ -21,8 +23,10 @@ impl Emulator {
         let mut emulator = Emulator {
             cpu: Cpu::new(),
             display: Display::new(),
+            execute_interval: std::time::Duration::from_secs(1) / 700,
             memory: Memory::new(),
             paused: true,
+            time: std::time::Duration::ZERO,
         };
 
         emulator
@@ -33,12 +37,26 @@ impl Emulator {
         emulator
     }
 
-    pub(crate) fn emulate(&mut self) {
+    pub(crate) fn emulate(&mut self, delta: &std::time::Duration) {
         if self.paused {
             return;
         }
 
-        self.cpu.execute(&mut self.display, &mut self.memory);
+        let current_time = self.time;
+        let target_time = self.time.saturating_add(*delta);
+
+        let current_executions =
+            (current_time.as_secs_f32() / self.execute_interval.as_secs_f32()).floor() as u64;
+        let target_executions =
+            (target_time.as_secs_f32() / self.execute_interval.as_secs_f32()).floor() as u64;
+
+        let executions = target_executions - current_executions;
+
+        for _ in 0..executions {
+            self.cpu.execute(&mut self.display, &mut self.memory);
+        }
+
+        self.time = target_time;
     }
 
     pub(crate) fn is_pixel_on(&self, x: u8, y: u8) -> bool {

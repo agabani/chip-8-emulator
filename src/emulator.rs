@@ -66,7 +66,7 @@ mod system {
         }
     }
 
-    pub(super) fn emulate(mut emulator: ResMut<crate::chip8::Emulator>) {
-        emulator.emulate();
+    pub(super) fn emulate(time: Res<Time>, mut emulator: ResMut<crate::chip8::Emulator>) {
+        emulator.emulate(&time.delta());
     }
 }
