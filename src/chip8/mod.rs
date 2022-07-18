@@ -3,6 +3,7 @@ mod display;
 mod font;
 mod instruction;
 mod memory;
+mod timer;
 
 use cpu::Cpu;
 use display::Display;
@@ -41,6 +42,8 @@ impl Emulator {
         if self.paused {
             return;
         }
+
+        self.cpu.tick_timers(delta);
 
         let current_time = self.time;
         let target_time = self.time.saturating_add(*delta);

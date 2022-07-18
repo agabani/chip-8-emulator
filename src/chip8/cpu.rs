@@ -1,12 +1,12 @@
-use super::{display::Display, instruction::Instruction, memory::Memory};
+use super::{display::Display, instruction::Instruction, memory::Memory, timer::Timer};
 
 pub(super) struct Cpu {
-    delay_timer: u8,
+    delay_timer: Timer,
     /// 16-bit index register called "I" which is used to point at locations in memory
     i: u16,
     /// A program counter, often called just "PC", which points to the current instruction in memory
     program_counter: u16,
-    sound_timer: u8,
+    sound_timer: Timer,
     /// A stack for 16-bit addresses which is used to call subroutines/function and return from them
     stack: Vec<u16>,
     /// 16 8-bit general purpose variable registers numbered `0` through `F`, called `V0` through `VF`
@@ -16,10 +16,10 @@ pub(super) struct Cpu {
 impl Cpu {
     pub(super) fn new() -> Cpu {
         Cpu {
-            delay_timer: 0,
+            delay_timer: Timer::new(),
             i: 0,
             program_counter: 0x200,
-            sound_timer: 0,
+            sound_timer: Timer::new(),
             stack: Vec::new(),
             v: [0; 16],
         }
@@ -188,13 +188,9 @@ impl Cpu {
             }
             Instruction::SetDelayTimer { x } => {
                 self.set_delay_timer(self.get_v_register(x));
-                // TODO: build timer decrementing functionality then remove the code below
-                self.set_delay_timer(0);
             }
             Instruction::SetSoundTimer { x } => {
                 self.set_sound_timer(self.get_v_register(x));
-                // TODO: build timer decrementing functionality then remove the code below
-                self.set_sound_timer(0);
             }
             Instruction::AddToIndex { x } => self
                 .set_index_register(self.get_index_register() + u16::from(self.get_v_register(x))),
@@ -234,16 +230,21 @@ impl Cpu {
         }
     }
 
+    pub(super) fn tick_timers(&mut self, duration: &std::time::Duration) {
+        self.delay_timer.tick(duration);
+        self.sound_timer.tick(duration);
+    }
+
     fn get_delay_timer(&self) -> u8 {
-        self.delay_timer
+        self.delay_timer.get()
     }
 
     fn set_delay_timer(&mut self, n: u8) {
-        self.delay_timer = n;
+        self.delay_timer.set(n);
     }
 
     fn set_sound_timer(&mut self, n: u8) {
-        self.sound_timer = n;
+        self.sound_timer.set(n);
     }
 
     fn get_program_counter(&self) -> u16 {
