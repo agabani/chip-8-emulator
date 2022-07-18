@@ -188,6 +188,14 @@ impl Cpu {
                     }
                 }
             }
+            Instruction::SkipIfKeyPressed { x } => match keypad.read() {
+                Some(key) if key == self.get_v_register(x) => self.increment_program_counter(),
+                _ => {}
+            },
+            Instruction::SkipIfKeyNotPressed { x } => match keypad.read() {
+                Some(key) if key == self.get_v_register(x) => {}
+                _ => self.increment_program_counter(),
+            },
             Instruction::SetCurrentDelayTimerValueToRegister { x } => {
                 self.set_v_register(x, self.get_delay_timer());
             }

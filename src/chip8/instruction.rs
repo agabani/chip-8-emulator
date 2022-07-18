@@ -46,6 +46,10 @@ pub(super) enum Instruction {
     Random { x: u8, nn: u8 },
     /// DXYN
     DisplayDraw { x: u8, y: u8, n: u8 },
+    /// EX9E
+    SkipIfKeyPressed { x: u8 },
+    /// EXA1
+    SkipIfKeyNotPressed { x: u8 },
     /// FX07
     SetCurrentDelayTimerValueToRegister { x: u8 },
     /// FX0A
@@ -128,6 +132,8 @@ impl Instruction {
                 y: n3,
                 n: n4,
             },
+            [0xE, n2, 0x9, 0xE] => Instruction::SkipIfKeyPressed { x: n2 },
+            [0xE, n2, 0xA, 0x1] => Instruction::SkipIfKeyNotPressed { x: n2 },
             [0xF, n2, 0x0, 0x7] => Instruction::SetCurrentDelayTimerValueToRegister { x: n2 },
             [0xF, n2, 0x0, 0xA] => Instruction::GetKey { x: n2 },
             [0xF, n2, 0x1, 0x5] => Instruction::SetDelayTimer { x: n2 },

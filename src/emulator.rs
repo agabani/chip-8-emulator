@@ -72,6 +72,7 @@ mod system {
         emulator.emulate(&time.delta());
     }
 
+    #[allow(clippy::needless_pass_by_value)]
     pub(super) fn keyboard(
         keys: Res<Input<KeyCode>>,
         mut emulator: ResMut<crate::chip8::Emulator>,
