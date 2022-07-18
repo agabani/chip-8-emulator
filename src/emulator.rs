@@ -20,14 +20,27 @@ pub(crate) mod component {
     }
 }
 
-pub(crate) mod system {
+pub(crate) mod plugin {
+    use super::system;
+
+    pub(crate) struct Plugin;
+
+    impl bevy::prelude::Plugin for Plugin {
+        fn build(&self, app: &mut bevy::prelude::App) {
+            app.add_system(system::drag_and_drop_rom)
+                .add_system(system::emulate);
+        }
+    }
+}
+
+mod system {
     use std::io::Read;
 
     use bevy::prelude::*;
 
     use super::component;
 
-    pub(crate) fn drag_and_drop_rom(
+    pub(super) fn drag_and_drop_rom(
         mut commands: Commands,
         mut reader: EventReader<FileDragAndDrop>,
         mut emulator: ResMut<crate::chip8::Emulator>,
@@ -53,7 +66,7 @@ pub(crate) mod system {
         }
     }
 
-    pub(crate) fn emulate(mut emulator: ResMut<crate::chip8::Emulator>) {
+    pub(super) fn emulate(mut emulator: ResMut<crate::chip8::Emulator>) {
         emulator.emulate();
     }
 }
