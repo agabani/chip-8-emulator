@@ -66,6 +66,7 @@ mod system {
         }
     }
 
+    #[allow(clippy::needless_pass_by_value)]
     pub(super) fn emulate(time: Res<Time>, mut emulator: ResMut<crate::chip8::Emulator>) {
         emulator.emulate(&time.delta());
     }

@@ -35,7 +35,7 @@ impl Cpu {
             Instruction::ClearScreen => display.clear_screen(),
             Instruction::Return => {
                 let program_counter = self.pop_stack();
-                self.set_program_counter(program_counter)
+                self.set_program_counter(program_counter);
             }
             Instruction::Jump { nnn } => self.set_program_counter(nnn),
             Instruction::Call { nnn } => {
@@ -60,17 +60,17 @@ impl Cpu {
             Instruction::SetRegister { x, nn } => self.set_v_register(x, nn),
             Instruction::AddValueToRegister { x, nn } => {
                 let (result, _) = self.get_v_register(x).overflowing_add(nn);
-                self.set_v_register(x, result)
+                self.set_v_register(x, result);
             }
             Instruction::Set { x, y } => self.set_v_register(x, self.get_v_register(y)),
             Instruction::BinaryAnd { x, y } => {
-                self.set_v_register(x, self.get_v_register(x) & self.get_v_register(y))
+                self.set_v_register(x, self.get_v_register(x) & self.get_v_register(y));
             }
             Instruction::BinaryOr { x, y } => {
-                self.set_v_register(x, self.get_v_register(x) | self.get_v_register(y))
+                self.set_v_register(x, self.get_v_register(x) | self.get_v_register(y));
             }
             Instruction::LogicalXor { x, y } => {
-                self.set_v_register(x, self.get_v_register(x) ^ self.get_v_register(y))
+                self.set_v_register(x, self.get_v_register(x) ^ self.get_v_register(y));
             }
             Instruction::Add { x, y } => {
                 let (nn, overflow) = self
@@ -181,7 +181,7 @@ impl Cpu {
                 }
             }
             Instruction::SetCurrentDelayTimerValueToRegister { x } => {
-                self.set_v_register(x, self.get_delay_timer())
+                self.set_v_register(x, self.get_delay_timer());
             }
             Instruction::GetKey { x: _ } => {
                 // TODO: read key
@@ -206,7 +206,7 @@ impl Cpu {
                 let d2 = n % 10;
                 let n = n / 10;
                 let d1 = n;
-                memory.set_byte(self.get_index_register() + 0x0, d1);
+                memory.set_byte(self.get_index_register(), d1);
                 memory.set_byte(self.get_index_register() + 0x1, d2);
                 memory.set_byte(self.get_index_register() + 0x2, d3);
             }
@@ -215,7 +215,7 @@ impl Cpu {
                     memory.set_byte(
                         self.get_index_register() + u16::from(i),
                         self.get_v_register(i),
-                    )
+                    );
                 }
             }
             Instruction::LoadMemory { x } => {
@@ -227,9 +227,9 @@ impl Cpu {
         }
 
         match instruction {
-            Instruction::Jump { nnn: _ } => {}
-            Instruction::Call { nnn: _ } => {}
-            Instruction::GetKey { x: _ } => {}
+            Instruction::Jump { nnn: _ }
+            | Instruction::Call { nnn: _ }
+            | Instruction::GetKey { x: _ } => {}
             _ => self.increment_program_counter(),
         }
     }

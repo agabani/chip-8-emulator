@@ -45,14 +45,11 @@ impl Emulator {
         let current_time = self.time;
         let target_time = self.time.saturating_add(*delta);
 
-        let current_executions =
-            (current_time.as_secs_f32() / self.execute_interval.as_secs_f32()).floor() as u64;
-        let target_executions =
-            (target_time.as_secs_f32() / self.execute_interval.as_secs_f32()).floor() as u64;
+        let current_executions = current_time.as_micros() / self.execute_interval.as_micros();
+        let target_executions = target_time.as_micros() / self.execute_interval.as_micros();
+        let delta_executions = target_executions - current_executions;
 
-        let executions = target_executions - current_executions;
-
-        for _ in 0..executions {
+        for _ in 0..delta_executions {
             self.cpu.execute(&mut self.display, &mut self.memory);
         }
 
