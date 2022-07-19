@@ -215,15 +215,15 @@ impl Cpu {
                 .set_index_register(self.get_index_register() + u16::from(self.get_v_register(x))),
             Instruction::LoadFont { x } => self.set_index_register(0x050 + u16::from(x) * 0x5),
             Instruction::BinaryCodedDecimalConversion { x } => {
-                let n = self.get_v_register(x);
-                let d3 = n % 10;
-                let n = n / 10;
-                let d2 = n % 10;
-                let n = n / 10;
-                let d1 = n;
-                memory.set_byte(self.get_index_register(), d1);
-                memory.set_byte(self.get_index_register() + 0x1, d2);
-                memory.set_byte(self.get_index_register() + 0x2, d3);
+                // TODO: do not rely on string conversion
+                let string = format!("{:03}", self.get_v_register(x));
+
+                for (i, c) in string.chars().enumerate() {
+                    memory.set_byte(
+                        self.get_index_register() + i as u16,
+                        c.to_digit(10).unwrap() as u8,
+                    );
+                }
             }
             Instruction::StoreMemory { x } => {
                 for i in 0..=x {
