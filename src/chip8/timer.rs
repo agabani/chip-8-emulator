@@ -11,18 +11,18 @@ impl Timer {
 
     #[allow(clippy::cast_possible_truncation)]
     pub(super) fn get(&self) -> u8 {
-        let seconds = self.remaining.as_millis() / 1_000;
+        let remaining = self.remaining.as_millis() * 60 / 1000;
         let remainder = self.remaining.as_millis() % 1_000;
 
         if remainder == 0 {
-            seconds as u8
+            remaining as u8
         } else {
-            seconds as u8 + 1
+            remaining as u8 + 1
         }
     }
 
-    pub(super) fn set(&mut self, seconds: u8) {
-        self.remaining = std::time::Duration::from_secs(u64::from(seconds));
+    pub(super) fn set(&mut self, nn: u8) {
+        self.remaining = std::time::Duration::from_secs(u64::from(nn)) / 60;
     }
 
     pub(super) fn tick(&mut self, duration: &std::time::Duration) {
