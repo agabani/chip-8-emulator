@@ -11,14 +11,17 @@ use display::Display;
 use font::Font;
 use keypad::Keypad;
 use memory::Memory;
+use timer::Timer;
 
 pub(crate) struct Emulator {
     cpu: Cpu,
+    delay_timer: Timer,
     display: Display,
     execute_interval: std::time::Duration,
     keypad: Keypad,
     memory: Memory,
     paused: bool,
+    sound_timer: Timer,
     time: std::time::Duration,
 }
 
@@ -26,11 +29,13 @@ impl Emulator {
     pub(crate) fn new() -> Emulator {
         let mut emulator = Emulator {
             cpu: Cpu::new(),
+            delay_timer: Timer::new(),
             display: Display::new(),
             execute_interval: std::time::Duration::from_secs(1) / 700,
             keypad: Keypad::new(),
             memory: Memory::new(),
             paused: true,
+            sound_timer: Timer::new(),
             time: std::time::Duration::ZERO,
         };
 
@@ -47,7 +52,8 @@ impl Emulator {
             return;
         }
 
-        self.cpu.tick_timers(delta);
+        self.delay_timer.tick(delta);
+        self.sound_timer.tick(delta);
 
         let current_time = self.time;
         let target_time = self.time.saturating_add(*delta);
@@ -57,8 +63,13 @@ impl Emulator {
         let delta_executions = target_executions - current_executions;
 
         for _ in 0..delta_executions {
-            self.cpu
-                .execute(&mut self.display, &self.keypad, &mut self.memory);
+            self.cpu.execute(
+                &mut self.display,
+                &self.keypad,
+                &mut self.memory,
+                &mut self.delay_timer,
+                &mut self.sound_timer,
+            );
         }
 
         self.time = target_time;

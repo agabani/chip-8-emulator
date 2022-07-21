@@ -3,12 +3,10 @@ use super::{
 };
 
 pub(super) struct Cpu {
-    delay_timer: Timer,
     /// 16-bit index register called "I" which is used to point at locations in memory
     i: u16,
     /// A program counter, often called just "PC", which points to the current instruction in memory
     program_counter: u16,
-    sound_timer: Timer,
     /// A stack for 16-bit addresses which is used to call subroutines/function and return from them
     stack: Vec<u16>,
     /// 16 8-bit general purpose variable registers numbered `0` through `F`, called `V0` through `VF`
@@ -18,16 +16,21 @@ pub(super) struct Cpu {
 impl Cpu {
     pub(super) fn new() -> Cpu {
         Cpu {
-            delay_timer: Timer::new(),
             i: 0,
             program_counter: 0x200,
-            sound_timer: Timer::new(),
             stack: Vec::new(),
             v: [0; 16],
         }
     }
 
-    pub(super) fn execute(&mut self, display: &mut Display, keypad: &Keypad, memory: &mut Memory) {
+    pub(super) fn execute(
+        &mut self,
+        display: &mut Display,
+        keypad: &Keypad,
+        memory: &mut Memory,
+        delay_timer: &mut Timer,
+        sound_timer: &mut Timer,
+    ) {
         let instruction = Instruction::parse([
             memory.get_byte(self.get_program_counter()),
             memory.get_byte(self.get_program_counter() + 0x1),
@@ -197,7 +200,7 @@ impl Cpu {
                 _ => self.increment_program_counter(),
             },
             Instruction::SetCurrentDelayTimerValueToRegister { x } => {
-                self.set_v_register(x, self.get_delay_timer());
+                self.set_v_register(x, delay_timer.get());
             }
             Instruction::GetKey { x } => {
                 if let Some(n) = keypad.read() {
@@ -206,10 +209,10 @@ impl Cpu {
                 }
             }
             Instruction::SetDelayTimer { x } => {
-                self.set_delay_timer(self.get_v_register(x));
+                delay_timer.set(self.get_v_register(x));
             }
             Instruction::SetSoundTimer { x } => {
-                self.set_sound_timer(self.get_v_register(x));
+                sound_timer.set(self.get_v_register(x));
             }
             Instruction::AddToIndex { x } => self
                 .set_index_register(self.get_index_register() + u16::from(self.get_v_register(x))),
@@ -248,23 +251,6 @@ impl Cpu {
             | Instruction::GetKey { x: _ } => {}
             _ => self.increment_program_counter(),
         }
-    }
-
-    pub(super) fn tick_timers(&mut self, duration: &std::time::Duration) {
-        self.delay_timer.tick(duration);
-        self.sound_timer.tick(duration);
-    }
-
-    fn get_delay_timer(&self) -> u8 {
-        self.delay_timer.get()
-    }
-
-    fn set_delay_timer(&mut self, n: u8) {
-        self.delay_timer.set(n);
-    }
-
-    fn set_sound_timer(&mut self, n: u8) {
-        self.sound_timer.set(n);
     }
 
     fn get_program_counter(&self) -> u16 {
