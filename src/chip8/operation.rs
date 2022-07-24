@@ -36,6 +36,8 @@ pub(super) enum Operation {
     SUB(SUB),
     /// 8XY6
     SHR(SHR),
+    /// 8XY7
+    SUBN(SUBN),
     /// 8XYE
     ShiftLeft { x: u8, y: u8 },
     /// 9XY0
@@ -248,6 +250,17 @@ pub(super) struct SHR {
     y: u8,
 }
 
+/// 8xy7 - SUBN Vx, Vy
+///
+///  Set Vx = Vy - Vx, set VF = NOT borrow.
+///
+///  If Vy > Vx, then VF is set to 1, otherwise 0. Then Vx is subtracted from Vy, and the results stored in Vx.
+#[derive(Debug, PartialEq)]
+pub(super) struct SUBN {
+    x: u8,
+    y: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -274,6 +287,7 @@ impl Operation {
             [0x8, n2, n3, 0x4] => Operation::ADD2(ADD2::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0x5] => Operation::SUB(SUB::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0x6] => Operation::SHR(SHR::new(nibble::to_n(n2), nibble::to_n(n3))),
+            [0x8, n2, n3, 0x7] => Operation::SUBN(SUBN::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0xE] => Operation::ShiftLeft {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
@@ -563,6 +577,27 @@ impl SHR {
         }
 
         let (nn, _) = vx.overflowing_shr(0x1);
+        register.set_v_register(self.x, nn);
+        register.increment_program_counter();
+    }
+}
+
+impl SUBN {
+    pub(super) fn new(x: u8, y: u8) -> SUBN {
+        SUBN { x, y }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        let (nn, overflow) = register
+            .get_v_register(self.y)
+            .overflowing_sub(register.get_v_register(self.x));
+
+        if overflow {
+            register.set_v_register(0xF, 0x0);
+        } else {
+            register.set_v_register(0xF, 0x1);
+        }
+
         register.set_v_register(self.x, nn);
         register.increment_program_counter();
     }
@@ -964,5 +999,39 @@ mod tests {
         assert_eq!(register.get_program_counter(), 0x202);
         assert_eq!(register.get_v_register(0x4), 0b01111010);
         assert_eq!(register.get_v_register(0xF), 0x1);
+    }
+
+    #[test]
+    fn test_subn() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x4, 0x3);
+        register.set_v_register(0x2, 0x7);
+        let instruction = SUBN::new(0x4, 0x2);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_v_register(0x4), 0x04);
+        assert_eq!(register.get_v_register(0xF), 0x1);
+    }
+
+    #[test]
+    fn test_subn_overflow() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x4, 0x2);
+        register.set_v_register(0x2, 0x0);
+        let instruction = SUBN::new(0x4, 0x2);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_v_register(0x4), 0xFE);
+        assert_eq!(register.get_v_register(0xF), 0x0);
     }
 }

@@ -42,6 +42,7 @@ impl Cpu {
             Operation::ADD2(o) => o.execute(register),
             Operation::SUB(o) => o.execute(register),
             Operation::SHR(o) => o.execute(register),
+            Operation::SUBN(o) => o.execute(register),
             Operation::ShiftLeft { x, y } => self.execute_shift_left(x, y, register),
             Operation::SkipIfNotEqual2 { x, y } => self.execute_skip_if_not_equal_2(x, y, register),
             Operation::SetIndexRegister { nnn } => self.execute_set_index_register(nnn, register),
