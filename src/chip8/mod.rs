@@ -101,7 +101,7 @@ mod tests {
     use std::io::Read;
 
     use super::{
-        operation::{Operation, ADD1, CLS, JP, LD1, LDI},
+        operation::{Operation, ADD1, CLS, DRW, JP, LD1, LDI},
         *,
     };
 
@@ -140,48 +140,24 @@ mod tests {
             Operation::LDI(LDI::new(0x22A)),
             Operation::LD1(LD1::new(0x0, 0x0C)),
             Operation::LD1(LD1::new(0x1, 0x08)),
-            Operation::DisplayDraw {
-                x: 0x0,
-                y: 0x1,
-                n: 0xF,
-            },
+            Operation::DRW(DRW::new(0x0, 0x1, 0xF)),
             Operation::ADD1(ADD1::new(0x0, 0x09)),
             Operation::LDI(LDI::new(0x239)),
-            Operation::DisplayDraw {
-                x: 0x0,
-                y: 0x1,
-                n: 0xF,
-            },
+            Operation::DRW(DRW::new(0x0, 0x1, 0xF)),
             // 00000010
             Operation::LDI(LDI::new(0x248)),
             Operation::ADD1(ADD1::new(0x0, 0x08)),
-            Operation::DisplayDraw {
-                x: 0x0,
-                y: 0x1,
-                n: 0xF,
-            },
+            Operation::DRW(DRW::new(0x0, 0x1, 0xF)),
             Operation::ADD1(ADD1::new(0x0, 0x04)),
             Operation::LDI(LDI::new(0x257)),
-            Operation::DisplayDraw {
-                x: 0x0,
-                y: 0x1,
-                n: 0xF,
-            },
+            Operation::DRW(DRW::new(0x0, 0x1, 0xF)),
             Operation::ADD1(ADD1::new(0x0, 0x08)),
             Operation::LDI(LDI::new(0x266)),
             // 00000020
-            Operation::DisplayDraw {
-                x: 0x0,
-                y: 0x1,
-                n: 0xF,
-            },
+            Operation::DRW(DRW::new(0x0, 0x1, 0xF)),
             Operation::ADD1(ADD1::new(0x0, 0x08)),
             Operation::LDI(LDI::new(0x275)),
-            Operation::DisplayDraw {
-                x: 0x0,
-                y: 0x1,
-                n: 0xF,
-            },
+            Operation::DRW(DRW::new(0x0, 0x1, 0xF)),
             Operation::JP(JP::new(0x228)),
         ];
 

@@ -1,4 +1,4 @@
-use super::{display::Display, register::Register};
+use super::{display::Display, memory::Memory, register::Register};
 
 #[derive(Debug, PartialEq)]
 pub(super) enum Operation {
@@ -49,7 +49,7 @@ pub(super) enum Operation {
     /// CXNN
     RND(RND),
     /// DXYN
-    DisplayDraw { x: u8, y: u8, n: u8 },
+    DRW(DRW),
     /// EX9E
     SkipIfKeyPressed { x: u8 },
     /// EXA1
@@ -314,6 +314,23 @@ pub(super) struct RND {
     nn: u8,
 }
 
+/// Dxyn - DRW Vx, Vy, nibble
+///
+/// Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
+///
+/// The interpreter reads n bytes from memory, starting at the address stored in I.
+/// These bytes are then displayed as sprites on screen at coordinates (Vx, Vy).
+/// Sprites are XORed onto the existing screen.
+/// If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0.
+/// If the sprite is positioned so part of it is outside the coordinates of the display, it wraps around to the opposite side of the screen.
+/// See instruction 8xy3 for more information on XOR, and section 2.4, Display, for more information on the Chip-8 screen and sprites.
+#[derive(Debug, PartialEq)]
+pub(super) struct DRW {
+    x: u8,
+    y: u8,
+    n: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -346,11 +363,11 @@ impl Operation {
             [0xA, n2, n3, n4] => Operation::LDI(LDI::new(nibble::to_nnn(n2, n3, n4))),
             [0xB, n2, n3, n4] => Operation::JPV0(JPV0::new(nibble::to_nnn(n2, n3, n4))),
             [0xC, n2, n3, n4] => Operation::RND(RND::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
-            [0xD, n2, n3, n4] => Operation::DisplayDraw {
-                x: nibble::to_n(n2),
-                y: nibble::to_n(n3),
-                n: nibble::to_n(n4),
-            },
+            [0xD, n2, n3, n4] => Operation::DRW(DRW::new(
+                nibble::to_n(n2),
+                nibble::to_n(n3),
+                nibble::to_n(n4),
+            )),
             [0xE, n2, 0x9, 0xE] => Operation::SkipIfKeyPressed {
                 x: nibble::to_n(n2),
             },
@@ -706,6 +723,68 @@ impl RND {
 
     pub(super) fn execute(&self, register: &mut Register) {
         register.set_v_register(self.x, rand::random::<u8>() & self.nn);
+        register.increment_program_counter();
+    }
+}
+
+impl DRW {
+    pub(super) fn new(x: u8, y: u8, n: u8) -> DRW {
+        DRW { x, y, n }
+    }
+
+    /// TODO: impl wrap around
+    pub(super) fn execute(
+        &self,
+        register: &mut Register,
+        display: &mut Display,
+        memory: &mut Memory,
+    ) {
+        // Set the X coordinate to the value in VX modulo 64
+        let x = register.get_v_register(self.x) % 64;
+        // Set the Y coordinate to the value in VY modulo 32
+        let y = register.get_v_register(self.y) % 32;
+
+        // Set VF to 0
+        register.set_v_register(0xF, 0);
+
+        // For N rows
+        for row in 0..self.n {
+            // Get the Nth byte of sprite data, counting from the memory address in the I register
+            let sprite_data = memory.get_byte(register.get_index_register() + u16::from(row));
+
+            // For each of the 8 pixels/bits in this sprite row
+            for pixel in 0..8 {
+                let sprite_row_pixel = match (sprite_data >> (7 - pixel)) & 0x1 {
+                    1 => true,
+                    0 => false,
+                    v => panic!("{}", v),
+                };
+                let display_pixel = display.is_pixel_on(x + pixel, y + row);
+
+                // If the current pixel in the sprite row is on and the pixel at coordinates X,Y on the screen is also on
+                if sprite_row_pixel && display_pixel {
+                    // turn off the pixel
+                    display.set_pixel(x + pixel, y + row, false);
+                    // set VF to 1
+                    register.set_v_register(0xF, 1);
+                }
+                // Or if the current pixel in the sprite row is on and the screen pixel is not
+                else if sprite_row_pixel && !display_pixel {
+                    // draw the pixel at the X and Y coordinates
+                    display.set_pixel(x + pixel, y + row, sprite_row_pixel);
+                }
+
+                // If you reach the right edge of the screen, stop drawing this row
+                if x + pixel == 63 {
+                    break;
+                };
+            }
+
+            if y + row == 31 {
+                break;
+            }
+        }
+
         register.increment_program_counter();
     }
 }
