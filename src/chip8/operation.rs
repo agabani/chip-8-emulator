@@ -55,11 +55,11 @@ pub(super) enum Operation {
     /// EXA1
     SKNP(SKNP),
     /// FX07
-    LDDT(LDDT),
+    LDVDT(LDVDT),
     /// FX0A
     LDK(LDK),
     /// FX15
-    SetDelayTimer { x: u8 },
+    LDDTV(LDDTV),
     /// FX18
     SetSoundTimer { x: u8 },
     /// FX1E
@@ -357,7 +357,7 @@ pub(super) struct SKNP {
 ///
 /// The value of DT is placed into Vx.
 #[derive(Debug, PartialEq)]
-pub(super) struct LDDT {
+pub(super) struct LDVDT {
     x: u8,
 }
 
@@ -368,6 +368,16 @@ pub(super) struct LDDT {
 /// All execution stops until a key is pressed, then the value of that key is stored in Vx.
 #[derive(Debug, PartialEq)]
 pub(super) struct LDK {
+    x: u8,
+}
+
+/// Fx15 - LD DT, Vx
+///
+/// Set delay timer = Vx.
+///
+/// DT is set equal to the value of Vx.
+#[derive(Debug, PartialEq)]
+pub(super) struct LDDTV {
     x: u8,
 }
 
@@ -410,11 +420,9 @@ impl Operation {
             )),
             [0xE, n2, 0x9, 0xE] => Operation::SKP(SKP::new(nibble::to_n(n2))),
             [0xE, n2, 0xA, 0x1] => Operation::SKNP(SKNP::new(nibble::to_n(n2))),
-            [0xF, n2, 0x0, 0x7] => Operation::LDDT(LDDT::new(nibble::to_n(n2))),
+            [0xF, n2, 0x0, 0x7] => Operation::LDVDT(LDVDT::new(nibble::to_n(n2))),
             [0xF, n2, 0x0, 0xA] => Operation::LDK(LDK::new(nibble::to_n(n2))),
-            [0xF, n2, 0x1, 0x5] => Operation::SetDelayTimer {
-                x: nibble::to_n(n2),
-            },
+            [0xF, n2, 0x1, 0x5] => Operation::LDDTV(LDDTV::new(nibble::to_n(n2))),
             [0xF, n2, 0x1, 0x8] => Operation::SetSoundTimer {
                 x: nibble::to_n(n2),
             },
@@ -855,9 +863,9 @@ impl SKNP {
     }
 }
 
-impl LDDT {
-    pub(super) fn new(x: u8) -> LDDT {
-        LDDT { x }
+impl LDVDT {
+    pub(super) fn new(x: u8) -> LDVDT {
+        LDVDT { x }
     }
 
     pub(super) fn execute(&self, register: &mut Register, delay_timer: &Timer) {
@@ -876,6 +884,17 @@ impl LDK {
             register.set_v_register(self.x, n);
             register.increment_program_counter();
         }
+    }
+}
+
+impl LDDTV {
+    pub(super) fn new(x: u8) -> LDDTV {
+        LDDTV { x }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register, delay_timer: &mut Timer) {
+        delay_timer.set(register.get_v_register(self.x));
+        register.increment_program_counter();
     }
 }
 
@@ -1517,13 +1536,13 @@ mod tests {
     }
 
     #[test]
-    fn test_lddt() {
+    fn test_ldvdt() {
         // Arrange
         let mut register = Register::new();
         let mut delay_timer = Timer::new();
         delay_timer.set(0x2);
 
-        let instruction = LDDT::new(0x4);
+        let instruction = LDVDT::new(0x4);
 
         // Act
         instruction.execute(&mut register, &delay_timer);
@@ -1565,5 +1584,22 @@ mod tests {
         // Assert
         assert_eq!(register.get_program_counter(), 0x200);
         assert_eq!(register.get_v_register(0x4), 0x7);
+    }
+
+    #[test]
+    fn test_lddtv() {
+        // Arrange
+        let mut register = Register::new();
+        let mut delay_timer = Timer::new();
+        register.set_v_register(0x4, 0x2);
+
+        let instruction = LDDTV::new(0x4);
+
+        // Act
+        instruction.execute(&mut register, &mut delay_timer);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(delay_timer.get(), 0x2);
     }
 }
