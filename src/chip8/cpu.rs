@@ -82,26 +82,22 @@ impl Cpu {
             Instruction::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Instruction::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-
-        match instruction {
-            Instruction::Jump { nnn: _ }
-            | Instruction::Call { nnn: _ }
-            | Instruction::JumpWithOffset { nnn: _ }
-            | Instruction::GetKey { x: _ } => {}
-            _ => register.increment_program_counter(),
-        }
     }
 
     fn execute_clear_screen(&mut self, display: &mut Display, register: &mut Register) {
         display.clear_screen();
+        register.increment_program_counter();
     }
 
     fn execute_return(&mut self, register: &mut Register) {
         let program_counter = register.pop_stack();
         register.set_program_counter(program_counter);
+        register.increment_program_counter();
     }
 
-    fn execute_system_address(&self, _nnn: u16, register: &mut Register) {}
+    fn execute_system_address(&self, _nnn: u16, register: &mut Register) {
+        register.increment_program_counter();
+    }
 
     fn execute_jump(&mut self, nnn: u16, register: &mut Register) {
         register.set_program_counter(nnn);
@@ -116,43 +112,52 @@ impl Cpu {
         if register.get_v_register(x) == nn {
             register.increment_program_counter();
         }
+        register.increment_program_counter();
     }
 
     fn execute_skip_if_not_equal_1(&mut self, x: u8, nn: u8, register: &mut Register) {
         if register.get_v_register(x) != nn {
             register.increment_program_counter();
         }
+        register.increment_program_counter();
     }
 
     fn execute_skip_if_equal_2(&mut self, x: u8, y: u8, register: &mut Register) {
         if register.get_v_register(x) == register.get_v_register(y) {
             register.increment_program_counter();
         }
+        register.increment_program_counter();
     }
 
     fn execute_set_register(&mut self, x: u8, nn: u8, register: &mut Register) {
         register.set_v_register(x, nn);
+        register.increment_program_counter();
     }
 
     fn execute_add_value_to_register(&mut self, x: u8, nn: u8, register: &mut Register) {
         let (result, _) = register.get_v_register(x).overflowing_add(nn);
         register.set_v_register(x, result);
+        register.increment_program_counter();
     }
 
     fn execute_set(&mut self, x: u8, y: u8, register: &mut Register) {
         register.set_v_register(x, register.get_v_register(y));
+        register.increment_program_counter();
     }
 
     fn execute_binary_add(&mut self, x: u8, y: u8, register: &mut Register) {
         register.set_v_register(x, register.get_v_register(x) & register.get_v_register(y));
+        register.increment_program_counter();
     }
 
     fn execute_binary_or(&mut self, x: u8, y: u8, register: &mut Register) {
         register.set_v_register(x, register.get_v_register(x) | register.get_v_register(y));
+        register.increment_program_counter();
     }
 
     fn execute_logical_xor(&mut self, x: u8, y: u8, register: &mut Register) {
         register.set_v_register(x, register.get_v_register(x) ^ register.get_v_register(y));
+        register.increment_program_counter();
     }
 
     fn execute_and(&mut self, x: u8, y: u8, register: &mut Register) {
@@ -167,6 +172,8 @@ impl Cpu {
         } else {
             register.set_v_register(0xF, 0);
         }
+
+        register.increment_program_counter();
     }
 
     fn execute_subtract_right_from_left(&mut self, x: u8, y: u8, register: &mut Register) {
@@ -181,6 +188,8 @@ impl Cpu {
             .overflowing_sub(register.get_v_register(y));
 
         register.set_v_register(x, nn);
+
+        register.increment_program_counter();
     }
 
     fn execute_shift_right(&mut self, x: u8, y: u8, register: &mut Register) {
@@ -195,6 +204,7 @@ impl Cpu {
         } else {
             register.set_v_register(0xF, 0);
         }
+        register.increment_program_counter();
     }
 
     fn execute_shift_left(&mut self, x: u8, y: u8, register: &mut Register) {
@@ -209,16 +219,19 @@ impl Cpu {
         } else {
             register.set_v_register(0xF, 0);
         }
+        register.increment_program_counter();
     }
 
     fn execute_skip_if_not_equal_2(&mut self, x: u8, y: u8, register: &mut Register) {
         if register.get_v_register(x) != register.get_v_register(y) {
             register.increment_program_counter();
         }
+        register.increment_program_counter();
     }
 
     fn execute_set_index_register(&mut self, nnn: u16, register: &mut Register) {
-        register.set_index_register(nnn)
+        register.set_index_register(nnn);
+        register.increment_program_counter();
     }
 
     fn execute_jump_with_offset(&mut self, nnn: u16, register: &mut Register) {
@@ -227,6 +240,7 @@ impl Cpu {
 
     fn execute_random(&mut self, x: u8, nn: u8, register: &mut Register) {
         register.set_v_register(x, rand::random::<u8>() & nn);
+        register.increment_program_counter();
     }
 
     fn execute_display_draw(
@@ -283,6 +297,7 @@ impl Cpu {
                 break;
             }
         }
+        register.increment_program_counter();
     }
 
     fn execute_skip_if_key_pressed(&mut self, x: u8, keypad: &Keypad, register: &mut Register) {
@@ -290,6 +305,7 @@ impl Cpu {
             Some(key) if key == register.get_v_register(x) => register.increment_program_counter(),
             _ => {}
         }
+        register.increment_program_counter();
     }
 
     fn execute_skip_if_key_not_pressed(&mut self, x: u8, keypad: &Keypad, register: &mut Register) {
@@ -297,6 +313,7 @@ impl Cpu {
             Some(key) if key == register.get_v_register(x) => {}
             _ => register.increment_program_counter(),
         }
+        register.increment_program_counter();
     }
 
     fn execute_self_current_delay_timer_value_to_register(
@@ -306,6 +323,7 @@ impl Cpu {
         register: &mut Register,
     ) {
         register.set_v_register(x, delay_timer.get());
+        register.increment_program_counter();
     }
 
     fn execute_get_key(&mut self, x: u8, keypad: &Keypad, register: &mut Register) {
@@ -317,20 +335,24 @@ impl Cpu {
 
     fn execute_set_delay_timer(&mut self, x: u8, delay_timer: &mut Timer, register: &mut Register) {
         delay_timer.set(register.get_v_register(x));
+        register.increment_program_counter();
     }
 
     fn execute_set_sound_timer(&mut self, x: u8, sound_timer: &mut Timer, register: &mut Register) {
         sound_timer.set(register.get_v_register(x));
+        register.increment_program_counter();
     }
 
     fn execute_add_to_index(&mut self, x: u8, register: &mut Register) {
         register.set_index_register(
             register.get_index_register() + u16::from(register.get_v_register(x)),
         );
+        register.increment_program_counter();
     }
 
     fn execute_load_font(&mut self, x: u8, register: &mut Register) {
         register.set_index_register(0x050 + u16::from(x) * 0x5);
+        register.increment_program_counter();
     }
 
     fn execute_binary_coded_decimal_conversion(
@@ -348,6 +370,7 @@ impl Cpu {
                 c.to_digit(10).unwrap() as u8,
             );
         }
+        register.increment_program_counter();
     }
 
     fn execute_store_memory(&mut self, x: u8, memory: &mut Memory, register: &mut Register) {
@@ -357,6 +380,7 @@ impl Cpu {
                 register.get_v_register(i),
             );
         }
+        register.increment_program_counter();
     }
 
     fn execute_load_memory(&mut self, x: u8, memory: &Memory, register: &mut Register) {
@@ -364,5 +388,6 @@ impl Cpu {
             let byte = memory.get_byte(register.get_index_register() + u16::from(i));
             register.set_v_register(x, byte);
         }
+        register.increment_program_counter();
     }
 }
