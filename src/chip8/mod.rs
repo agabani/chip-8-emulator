@@ -100,7 +100,10 @@ mod tests {
 
     use std::io::Read;
 
-    use super::{instruction::Instruction, *};
+    use super::{
+        instruction::{Instruction, CLS},
+        *,
+    };
 
     #[test]
     fn get_pixel() {
@@ -133,7 +136,7 @@ mod tests {
 
         let instructions = vec![
             // 00000000
-            Instruction::ClearScreen,
+            Instruction::CLS(CLS::new()),
             Instruction::SetIndexRegister { nnn: 0x22A },
             Instruction::SetRegister { x: 0x0, nn: 0x0C },
             Instruction::SetRegister { x: 0x1, nn: 0x08 },

@@ -1,7 +1,9 @@
+use super::{display::Display, register::Register};
+
 #[derive(Debug, PartialEq)]
 pub(super) enum Instruction {
     /// 00E0
-    ClearScreen,
+    CLS(CLS),
     /// 00EE
     Return,
     /// 0NNN
@@ -70,6 +72,12 @@ pub(super) enum Instruction {
     LoadMemory { x: u8 },
 }
 
+/// 00E0 - CLS
+///
+/// Clear the display.
+#[derive(Debug, PartialEq)]
+pub(super) struct CLS;
+
 impl Instruction {
     pub(super) fn parse(bytes: [u8; 2]) -> Instruction {
         let nibbles = [
@@ -80,7 +88,7 @@ impl Instruction {
         ];
 
         match nibbles {
-            [0x0, 0x0, 0xE, 0x0] => Instruction::ClearScreen,
+            [0x0, 0x0, 0xE, 0x0] => Instruction::CLS(CLS::new()),
             [0x0, 0x0, 0xE, 0xE] => Instruction::Return,
             [0x0, n2, n3, n4] => Instruction::SystemAddress {
                 nnn: (u16::from(n2) << 8) + (u16::from(n3) << 4) + (u16::from(n4)),
@@ -145,5 +153,39 @@ impl Instruction {
             [0xF, n2, 0x6, 0x5] => Instruction::LoadMemory { x: n2 },
             [n1, n2, n3, n4] => todo!("{:1X} {:1X} {:1X} {:1X}", n1, n2, n3, n4),
         }
+    }
+}
+
+impl CLS {
+    pub(super) fn new() -> CLS {
+        CLS
+    }
+
+    pub(super) fn execute(&self, register: &mut Register, display: &mut Display) {
+        display.clear_screen();
+        register.increment_program_counter();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cls() {
+        // Arrange
+        let mut display = Display::new();
+        let mut register = Register::new();
+        let instruction = CLS::new();
+
+        // Act
+        instruction.execute(&mut register, &mut display);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(display.is_pixel_on(0, 0), false);
+        assert_eq!(display.is_pixel_on(63, 0), false);
+        assert_eq!(display.is_pixel_on(0, 31), false);
+        assert_eq!(display.is_pixel_on(63, 31), false);
     }
 }

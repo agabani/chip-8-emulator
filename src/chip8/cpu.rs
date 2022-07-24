@@ -25,7 +25,7 @@ impl Cpu {
         ]);
 
         match instruction {
-            Instruction::ClearScreen => self.execute_clear_screen(display, register),
+            Instruction::CLS(i) => i.execute(register, display),
             Instruction::Return => self.execute_return(register),
             Instruction::SystemAddress { nnn } => self.execute_system_address(nnn, register),
             Instruction::Jump { nnn } => self.execute_jump(nnn, register),
@@ -82,11 +82,6 @@ impl Cpu {
             Instruction::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Instruction::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_clear_screen(&mut self, display: &mut Display, register: &mut Register) {
-        display.clear_screen();
-        register.increment_program_counter();
     }
 
     fn execute_return(&mut self, register: &mut Register) {
