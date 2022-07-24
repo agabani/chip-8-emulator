@@ -45,7 +45,7 @@ pub(super) enum Operation {
     /// ANNN
     LDI(LDI),
     /// BNNN
-    JumpWithOffset { nnn: u16 },
+    JPV0(JPV0),
     /// CXNN
     Random { x: u8, nn: u8 },
     /// DXYN
@@ -293,6 +293,16 @@ pub(super) struct LDI {
     nnn: u16,
 }
 
+/// Bnnn - JP V0, addr
+///
+/// Jump to location nnn + V0.
+///
+/// The program counter is set to nnn plus the value of V0.
+#[derive(Debug, PartialEq)]
+pub(super) struct JPV0 {
+    nnn: u16,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -323,9 +333,7 @@ impl Operation {
             [0x8, n2, n3, 0xE] => Operation::SHL(SHL::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x9, n2, n3, 0x0] => Operation::SNE2(SNE2::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0xA, n2, n3, n4] => Operation::LDI(LDI::new(nibble::to_nnn(n2, n3, n4))),
-            [0xB, n2, n3, n4] => Operation::JumpWithOffset {
-                nnn: nibble::to_nnn(n2, n3, n4),
-            },
+            [0xB, n2, n3, n4] => Operation::JPV0(JPV0::new(nibble::to_nnn(n2, n3, n4))),
             [0xC, n2, n3, n4] => Operation::Random {
                 x: nibble::to_n(n2),
                 nn: nibble::to_nn(n3, n4),
@@ -670,6 +678,16 @@ impl LDI {
     pub(super) fn execute(&self, register: &mut Register) {
         register.set_index_register(self.nnn);
         register.increment_program_counter();
+    }
+}
+
+impl JPV0 {
+    pub(super) fn new(nnn: u16) -> JPV0 {
+        JPV0 { nnn }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        register.set_program_counter(self.nnn + u16::from(register.get_v_register(0x0)));
     }
 }
 
@@ -1179,5 +1197,19 @@ mod tests {
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
         assert_eq!(register.get_index_register(), 0x123);
+    }
+
+    #[test]
+    fn test_jpv0() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x0, 0x20);
+        let instruction = JPV0::new(0x400);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x420);
     }
 }

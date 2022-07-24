@@ -46,7 +46,7 @@ impl Cpu {
             Operation::SHL(o) => o.execute(register),
             Operation::SNE2(o) => o.execute(register),
             Operation::LDI(o) => o.execute(register),
-            Operation::JumpWithOffset { nnn } => self.execute_jump_with_offset(nnn, register),
+            Operation::JPV0(o) => o.execute(register),
             Operation::Random { x, nn } => self.execute_random(x, nn, register),
             Operation::DisplayDraw { x, y, n } => {
                 self.execute_display_draw(x, y, n, display, memory, register)
@@ -75,10 +75,6 @@ impl Cpu {
             Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_jump_with_offset(&mut self, nnn: u16, register: &mut Register) {
-        register.set_program_counter(nnn + u16::from(register.get_v_register(0x0)));
     }
 
     fn execute_random(&mut self, x: u8, nn: u8, register: &mut Register) {
