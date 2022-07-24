@@ -31,7 +31,7 @@ pub(super) enum Operation {
     /// 8XY3
     XOR(XOR),
     /// 8XY4
-    Add { x: u8, y: u8 },
+    ADD2(ADD2),
     /// 8XY5
     SubtractRightFromLeft { x: u8, y: u8 },
     /// 8XY6
@@ -215,6 +215,17 @@ pub(super) struct XOR {
     y: u8,
 }
 
+/// 8xy4 - ADD Vx, Vy
+///
+/// Set Vx = Vx + Vy, set VF = carry.
+///
+///  The values of Vx and Vy are added together. If the result is greater than 8 bits (i.e., > 255,) VF is set to 1, otherwise 0. Only the lowest 8 bits of the result are kept, and stored in Vx.
+#[derive(Debug, PartialEq)]
+pub(super) struct ADD2 {
+    x: u8,
+    y: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -238,10 +249,7 @@ impl Operation {
             [0x8, n2, n3, 0x1] => Operation::OR(OR::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0x2] => Operation::AND2(AND2::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0x3] => Operation::XOR(XOR::new(nibble::to_n(n2), nibble::to_n(n3))),
-            [0x8, n2, n3, 0x4] => Operation::Add {
-                x: nibble::to_n(n2),
-                y: nibble::to_n(n3),
-            },
+            [0x8, n2, n3, 0x4] => Operation::ADD2(ADD2::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0x5] => Operation::SubtractRightFromLeft {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
@@ -476,6 +484,27 @@ impl XOR {
             self.x,
             register.get_v_register(self.x) ^ register.get_v_register(self.y),
         );
+        register.increment_program_counter();
+    }
+}
+
+impl ADD2 {
+    pub(super) fn new(x: u8, y: u8) -> ADD2 {
+        ADD2 { x, y }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        let (nn, overflow) = register
+            .get_v_register(self.x)
+            .overflowing_add(register.get_v_register(self.y));
+
+        if overflow {
+            register.set_v_register(0xF, 0x1);
+        } else {
+            register.set_v_register(0xF, 0x0);
+        }
+
+        register.set_v_register(self.x, nn);
         register.increment_program_counter();
     }
 }
@@ -776,5 +805,39 @@ mod tests {
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
         assert_eq!(register.get_v_register(0x4), 0b11110000);
+    }
+
+    #[test]
+    fn test_add2() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x4, 0x7);
+        register.set_v_register(0x2, 0x3);
+        let instruction = ADD2::new(0x4, 0x2);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_v_register(0x4), 0x0A);
+        assert_eq!(register.get_v_register(0xF), 0x0);
+    }
+
+    #[test]
+    fn test_add2_overflow() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x4, 0xFF);
+        register.set_v_register(0x2, 0x02);
+        let instruction = ADD2::new(0x4, 0x2);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_v_register(0x4), 0x1);
+        assert_eq!(register.get_v_register(0xF), 0x1);
     }
 }

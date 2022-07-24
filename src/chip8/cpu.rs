@@ -39,7 +39,7 @@ impl Cpu {
             Operation::OR(o) => o.execute(register),
             Operation::AND2(o) => o.execute(register),
             Operation::XOR(o) => o.execute(register),
-            Operation::Add { x, y } => self.execute_and(x, y, register),
+            Operation::ADD2(o) => o.execute(register),
             Operation::SubtractRightFromLeft { x, y } => {
                 self.execute_subtract_right_from_left(x, y, register)
             }
@@ -76,22 +76,6 @@ impl Cpu {
             Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_and(&mut self, x: u8, y: u8, register: &mut Register) {
-        let (nn, overflow) = register
-            .get_v_register(x)
-            .overflowing_add(register.get_v_register(y));
-
-        register.set_v_register(x, nn);
-
-        if overflow {
-            register.set_v_register(0xF, 1);
-        } else {
-            register.set_v_register(0xF, 0);
-        }
-
-        register.increment_program_counter();
     }
 
     fn execute_subtract_right_from_left(&mut self, x: u8, y: u8, register: &mut Register) {
