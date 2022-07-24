@@ -19,7 +19,7 @@ pub(super) enum Operation {
     /// 5XY0
     SE2(SE2),
     /// 6XNN
-    SetRegister { x: u8, nn: u8 },
+    LD(LD),
     /// 7XNN
     AddValueToRegister { x: u8, nn: u8 },
     /// 8XY0
@@ -149,6 +149,17 @@ pub(super) struct SE2 {
     y: u8,
 }
 
+/// 6xnn - LD Vx, byte
+///
+/// Set Vx = nn.
+///
+/// The interpreter puts the value nn into register Vx.
+#[derive(Debug, PartialEq)]
+pub(super) struct LD {
+    x: u8,
+    nn: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -164,10 +175,7 @@ impl Operation {
                 Operation::SNE1(SNE1::new(nibble::to_n(n2), nibble::to_nn(n3, n4)))
             }
             [0x5, n2, n3, 0x0] => Operation::SE2(SE2::new(n2, n3)),
-            [0x6, n2, n3, n4] => Operation::SetRegister {
-                x: nibble::to_n(n2),
-                nn: nibble::to_nn(n3, n4),
-            },
+            [0x6, n2, n3, n4] => Operation::LD(LD::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
             [0x7, n2, n3, n4] => Operation::AddValueToRegister {
                 x: nibble::to_n(n2),
                 nn: nibble::to_nn(n3, n4),
@@ -350,6 +358,17 @@ impl SE2 {
         if register.get_v_register(self.x) == register.get_v_register(self.y) {
             register.increment_program_counter();
         }
+        register.increment_program_counter();
+    }
+}
+
+impl LD {
+    pub(super) fn new(x: u8, nn: u8) -> LD {
+        LD { x, nn }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        register.set_v_register(self.x, self.nn);
         register.increment_program_counter();
     }
 }
@@ -542,5 +561,19 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
+    }
+
+    #[test]
+    fn test_ld() {
+        // Arrange
+        let mut register = Register::new();
+        let instruction = LD::new(0x4, 0x2);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_v_register(0x4), 0x2);
     }
 }

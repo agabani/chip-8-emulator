@@ -33,7 +33,7 @@ impl Cpu {
             Operation::SE1(o) => o.execute(register),
             Operation::SNE1(o) => o.execute(register),
             Operation::SE2(o) => o.execute(register),
-            Operation::SetRegister { x, nn } => self.execute_set_register(x, nn, register),
+            Operation::LD(o) => o.execute(register),
             Operation::AddValueToRegister { x, nn } => {
                 self.execute_add_value_to_register(x, nn, register)
             }
@@ -78,11 +78,6 @@ impl Cpu {
             Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_set_register(&mut self, x: u8, nn: u8, register: &mut Register) {
-        register.set_v_register(x, nn);
-        register.increment_program_counter();
     }
 
     fn execute_add_value_to_register(&mut self, x: u8, nn: u8, register: &mut Register) {

@@ -101,7 +101,7 @@ mod tests {
     use std::io::Read;
 
     use super::{
-        operation::{Operation, CLS, JP},
+        operation::{Operation, CLS, JP, LD},
         *,
     };
 
@@ -138,8 +138,8 @@ mod tests {
             // 00000000
             Operation::CLS(CLS::new()),
             Operation::SetIndexRegister { nnn: 0x22A },
-            Operation::SetRegister { x: 0x0, nn: 0x0C },
-            Operation::SetRegister { x: 0x1, nn: 0x08 },
+            Operation::LD(LD::new(0x0, 0x0C)),
+            Operation::LD(LD::new(0x1, 0x08)),
             Operation::DisplayDraw {
                 x: 0x0,
                 y: 0x1,
