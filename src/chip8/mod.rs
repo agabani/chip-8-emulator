@@ -1,9 +1,9 @@
 mod cpu;
 mod display;
 mod font;
-mod instruction;
 pub(crate) mod keypad;
 mod memory;
+mod operation;
 mod register;
 mod timer;
 
@@ -101,7 +101,7 @@ mod tests {
     use std::io::Read;
 
     use super::{
-        instruction::{Instruction, CLS, JP},
+        operation::{Operation, CLS, JP},
         *,
     };
 
@@ -136,53 +136,53 @@ mod tests {
 
         let instructions = vec![
             // 00000000
-            Instruction::CLS(CLS::new()),
-            Instruction::SetIndexRegister { nnn: 0x22A },
-            Instruction::SetRegister { x: 0x0, nn: 0x0C },
-            Instruction::SetRegister { x: 0x1, nn: 0x08 },
-            Instruction::DisplayDraw {
+            Operation::CLS(CLS::new()),
+            Operation::SetIndexRegister { nnn: 0x22A },
+            Operation::SetRegister { x: 0x0, nn: 0x0C },
+            Operation::SetRegister { x: 0x1, nn: 0x08 },
+            Operation::DisplayDraw {
                 x: 0x0,
                 y: 0x1,
                 n: 0xF,
             },
-            Instruction::AddValueToRegister { x: 0x0, nn: 0x09 },
-            Instruction::SetIndexRegister { nnn: 0x239 },
-            Instruction::DisplayDraw {
+            Operation::AddValueToRegister { x: 0x0, nn: 0x09 },
+            Operation::SetIndexRegister { nnn: 0x239 },
+            Operation::DisplayDraw {
                 x: 0x0,
                 y: 0x1,
                 n: 0xF,
             },
             // 00000010
-            Instruction::SetIndexRegister { nnn: 0x248 },
-            Instruction::AddValueToRegister { x: 0x0, nn: 0x08 },
-            Instruction::DisplayDraw {
+            Operation::SetIndexRegister { nnn: 0x248 },
+            Operation::AddValueToRegister { x: 0x0, nn: 0x08 },
+            Operation::DisplayDraw {
                 x: 0x0,
                 y: 0x1,
                 n: 0xF,
             },
-            Instruction::AddValueToRegister { x: 0x0, nn: 0x04 },
-            Instruction::SetIndexRegister { nnn: 0x257 },
-            Instruction::DisplayDraw {
+            Operation::AddValueToRegister { x: 0x0, nn: 0x04 },
+            Operation::SetIndexRegister { nnn: 0x257 },
+            Operation::DisplayDraw {
                 x: 0x0,
                 y: 0x1,
                 n: 0xF,
             },
-            Instruction::AddValueToRegister { x: 0x0, nn: 0x08 },
-            Instruction::SetIndexRegister { nnn: 0x266 },
+            Operation::AddValueToRegister { x: 0x0, nn: 0x08 },
+            Operation::SetIndexRegister { nnn: 0x266 },
             // 00000020
-            Instruction::DisplayDraw {
+            Operation::DisplayDraw {
                 x: 0x0,
                 y: 0x1,
                 n: 0xF,
             },
-            Instruction::AddValueToRegister { x: 0x0, nn: 0x08 },
-            Instruction::SetIndexRegister { nnn: 0x275 },
-            Instruction::DisplayDraw {
+            Operation::AddValueToRegister { x: 0x0, nn: 0x08 },
+            Operation::SetIndexRegister { nnn: 0x275 },
+            Operation::DisplayDraw {
                 x: 0x0,
                 y: 0x1,
                 n: 0xF,
             },
-            Instruction::JP(JP::new(0x228)),
+            Operation::JP(JP::new(0x228)),
         ];
 
         for (index, instruction) in instructions.into_iter().enumerate() {
@@ -190,7 +190,7 @@ mod tests {
             let byte2 = memory.get_byte((0x200 + index * 2 + 1) as u16);
 
             assert_eq!(
-                Instruction::parse([byte1, byte2]),
+                Operation::parse([byte1, byte2]),
                 instruction,
                 "instruction {}",
                 index

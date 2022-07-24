@@ -1,5 +1,5 @@
 use super::{
-    display::Display, instruction::Instruction, keypad::Keypad, memory::Memory, register::Register,
+    display::Display, keypad::Keypad, memory::Memory, operation::Operation, register::Register,
     timer::Timer,
 };
 
@@ -19,66 +19,64 @@ impl Cpu {
         delay_timer: &mut Timer,
         sound_timer: &mut Timer,
     ) {
-        let instruction = Instruction::parse([
+        let instruction = Operation::parse([
             memory.get_byte(register.get_program_counter()),
             memory.get_byte(register.get_program_counter() + 0x1),
         ]);
 
         match instruction {
-            Instruction::CLS(i) => i.execute(register, display),
-            Instruction::RET(i) => i.execute(register),
-            Instruction::SYS(i) => i.execute(),
-            Instruction::JP(i) => i.execute(register),
-            Instruction::CALL(i) => i.execute(register),
-            Instruction::SE(i) => i.execute(register),
-            Instruction::SNE(i) => i.execute(register),
-            Instruction::SkipIfEqual2 { x, y } => self.execute_skip_if_equal_2(x, y, register),
-            Instruction::SetRegister { x, nn } => self.execute_set_register(x, nn, register),
-            Instruction::AddValueToRegister { x, nn } => {
+            Operation::CLS(o) => o.execute(register, display),
+            Operation::RET(o) => o.execute(register),
+            Operation::SYS(o) => o.execute(),
+            Operation::JP(o) => o.execute(register),
+            Operation::CALL(o) => o.execute(register),
+            Operation::SE(o) => o.execute(register),
+            Operation::SNE(o) => o.execute(register),
+            Operation::SkipIfEqual2 { x, y } => self.execute_skip_if_equal_2(x, y, register),
+            Operation::SetRegister { x, nn } => self.execute_set_register(x, nn, register),
+            Operation::AddValueToRegister { x, nn } => {
                 self.execute_add_value_to_register(x, nn, register)
             }
-            Instruction::Set { x, y } => self.execute_set(x, y, register),
-            Instruction::BinaryAnd { x, y } => self.execute_binary_add(x, y, register),
-            Instruction::BinaryOr { x, y } => self.execute_binary_or(x, y, register),
-            Instruction::LogicalXor { x, y } => self.execute_logical_xor(x, y, register),
-            Instruction::Add { x, y } => self.execute_and(x, y, register),
-            Instruction::SubtractRightFromLeft { x, y } => {
+            Operation::Set { x, y } => self.execute_set(x, y, register),
+            Operation::BinaryAnd { x, y } => self.execute_binary_add(x, y, register),
+            Operation::BinaryOr { x, y } => self.execute_binary_or(x, y, register),
+            Operation::LogicalXor { x, y } => self.execute_logical_xor(x, y, register),
+            Operation::Add { x, y } => self.execute_and(x, y, register),
+            Operation::SubtractRightFromLeft { x, y } => {
                 self.execute_subtract_right_from_left(x, y, register)
             }
-            Instruction::ShiftRight { x, y } => self.execute_shift_right(x, y, register),
-            Instruction::ShiftLeft { x, y } => self.execute_shift_left(x, y, register),
-            Instruction::SkipIfNotEqual2 { x, y } => {
-                self.execute_skip_if_not_equal_2(x, y, register)
-            }
-            Instruction::SetIndexRegister { nnn } => self.execute_set_index_register(nnn, register),
-            Instruction::JumpWithOffset { nnn } => self.execute_jump_with_offset(nnn, register),
-            Instruction::Random { x, nn } => self.execute_random(x, nn, register),
-            Instruction::DisplayDraw { x, y, n } => {
+            Operation::ShiftRight { x, y } => self.execute_shift_right(x, y, register),
+            Operation::ShiftLeft { x, y } => self.execute_shift_left(x, y, register),
+            Operation::SkipIfNotEqual2 { x, y } => self.execute_skip_if_not_equal_2(x, y, register),
+            Operation::SetIndexRegister { nnn } => self.execute_set_index_register(nnn, register),
+            Operation::JumpWithOffset { nnn } => self.execute_jump_with_offset(nnn, register),
+            Operation::Random { x, nn } => self.execute_random(x, nn, register),
+            Operation::DisplayDraw { x, y, n } => {
                 self.execute_display_draw(x, y, n, display, memory, register)
             }
-            Instruction::SkipIfKeyPressed { x } => {
+            Operation::SkipIfKeyPressed { x } => {
                 self.execute_skip_if_key_pressed(x, keypad, register)
             }
-            Instruction::SkipIfKeyNotPressed { x } => {
+            Operation::SkipIfKeyNotPressed { x } => {
                 self.execute_skip_if_key_not_pressed(x, keypad, register)
             }
-            Instruction::SetCurrentDelayTimerValueToRegister { x } => {
+            Operation::SetCurrentDelayTimerValueToRegister { x } => {
                 self.execute_self_current_delay_timer_value_to_register(x, delay_timer, register)
             }
-            Instruction::GetKey { x } => self.execute_get_key(x, keypad, register),
-            Instruction::SetDelayTimer { x } => {
+            Operation::GetKey { x } => self.execute_get_key(x, keypad, register),
+            Operation::SetDelayTimer { x } => {
                 self.execute_set_delay_timer(x, delay_timer, register)
             }
-            Instruction::SetSoundTimer { x } => {
+            Operation::SetSoundTimer { x } => {
                 self.execute_set_sound_timer(x, sound_timer, register)
             }
-            Instruction::AddToIndex { x } => self.execute_add_to_index(x, register),
-            Instruction::LoadFont { x } => self.execute_load_font(x, register),
-            Instruction::BinaryCodedDecimalConversion { x } => {
+            Operation::AddToIndex { x } => self.execute_add_to_index(x, register),
+            Operation::LoadFont { x } => self.execute_load_font(x, register),
+            Operation::BinaryCodedDecimalConversion { x } => {
                 self.execute_binary_coded_decimal_conversion(x, memory, register)
             }
-            Instruction::StoreMemory { x } => self.execute_store_memory(x, memory, register),
-            Instruction::LoadMemory { x } => self.execute_load_memory(x, memory, register),
+            Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
+            Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
     }
 

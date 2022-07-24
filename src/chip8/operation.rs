@@ -1,7 +1,7 @@
 use super::{display::Display, register::Register};
 
 #[derive(Debug, PartialEq)]
-pub(super) enum Instruction {
+pub(super) enum Operation {
     /// 00E0
     CLS(CLS),
     /// 00EE
@@ -138,111 +138,109 @@ pub(super) struct SNE {
     nn: u8,
 }
 
-impl Instruction {
-    pub(super) fn parse(bytes: [u8; 2]) -> Instruction {
+impl Operation {
+    pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
 
         match nibbles {
-            [0x0, 0x0, 0xE, 0x0] => Instruction::CLS(CLS::new()),
-            [0x0, 0x0, 0xE, 0xE] => Instruction::RET(RET::new()),
-            [0x0, n2, n3, n4] => Instruction::SYS(SYS::new(nibble::to_nnn(n2, n3, n4))),
-            [0x1, n2, n3, n4] => Instruction::JP(JP::new(nibble::to_nnn(n2, n3, n4))),
-            [0x2, n2, n3, n4] => Instruction::CALL(CALL::new(nibble::to_nnn(n2, n3, n4))),
-            [0x3, n2, n3, n4] => Instruction::SE(SE::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
-            [0x4, n2, n3, n4] => {
-                Instruction::SNE(SNE::new(nibble::to_n(n2), nibble::to_nn(n3, n4)))
-            }
-            [0x5, n2, n3, 0x0] => Instruction::SkipIfEqual2 { x: n2, y: n3 },
-            [0x6, n2, n3, n4] => Instruction::SetRegister {
+            [0x0, 0x0, 0xE, 0x0] => Operation::CLS(CLS::new()),
+            [0x0, 0x0, 0xE, 0xE] => Operation::RET(RET::new()),
+            [0x0, n2, n3, n4] => Operation::SYS(SYS::new(nibble::to_nnn(n2, n3, n4))),
+            [0x1, n2, n3, n4] => Operation::JP(JP::new(nibble::to_nnn(n2, n3, n4))),
+            [0x2, n2, n3, n4] => Operation::CALL(CALL::new(nibble::to_nnn(n2, n3, n4))),
+            [0x3, n2, n3, n4] => Operation::SE(SE::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
+            [0x4, n2, n3, n4] => Operation::SNE(SNE::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
+            [0x5, n2, n3, 0x0] => Operation::SkipIfEqual2 { x: n2, y: n3 },
+            [0x6, n2, n3, n4] => Operation::SetRegister {
                 x: nibble::to_n(n2),
                 nn: nibble::to_nn(n3, n4),
             },
-            [0x7, n2, n3, n4] => Instruction::AddValueToRegister {
+            [0x7, n2, n3, n4] => Operation::AddValueToRegister {
                 x: nibble::to_n(n2),
                 nn: nibble::to_nn(n3, n4),
             },
-            [0x8, n2, n3, 0x0] => Instruction::Set {
+            [0x8, n2, n3, 0x0] => Operation::Set {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
             },
-            [0x8, n2, n3, 0x1] => Instruction::BinaryOr {
+            [0x8, n2, n3, 0x1] => Operation::BinaryOr {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
             },
-            [0x8, n2, n3, 0x2] => Instruction::BinaryAnd {
+            [0x8, n2, n3, 0x2] => Operation::BinaryAnd {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
             },
-            [0x8, n2, n3, 0x3] => Instruction::LogicalXor {
+            [0x8, n2, n3, 0x3] => Operation::LogicalXor {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
             },
-            [0x8, n2, n3, 0x4] => Instruction::Add {
+            [0x8, n2, n3, 0x4] => Operation::Add {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
             },
-            [0x8, n2, n3, 0x5] => Instruction::SubtractRightFromLeft {
+            [0x8, n2, n3, 0x5] => Operation::SubtractRightFromLeft {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
             },
-            [0x8, n2, n3, 0x6] => Instruction::ShiftRight {
+            [0x8, n2, n3, 0x6] => Operation::ShiftRight {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
             },
-            [0x8, n2, n3, 0xE] => Instruction::ShiftLeft {
+            [0x8, n2, n3, 0xE] => Operation::ShiftLeft {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
             },
-            [0x9, n2, n3, 0x0] => Instruction::SkipIfNotEqual2 {
+            [0x9, n2, n3, 0x0] => Operation::SkipIfNotEqual2 {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
             },
-            [0xA, n2, n3, n4] => Instruction::SetIndexRegister {
+            [0xA, n2, n3, n4] => Operation::SetIndexRegister {
                 nnn: nibble::to_nnn(n2, n3, n4),
             },
-            [0xB, n2, n3, n4] => Instruction::JumpWithOffset {
+            [0xB, n2, n3, n4] => Operation::JumpWithOffset {
                 nnn: nibble::to_nnn(n2, n3, n4),
             },
-            [0xC, n2, n3, n4] => Instruction::Random {
+            [0xC, n2, n3, n4] => Operation::Random {
                 x: nibble::to_n(n2),
                 nn: nibble::to_nn(n3, n4),
             },
-            [0xD, n2, n3, n4] => Instruction::DisplayDraw {
+            [0xD, n2, n3, n4] => Operation::DisplayDraw {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
                 n: nibble::to_n(n4),
             },
-            [0xE, n2, 0x9, 0xE] => Instruction::SkipIfKeyPressed {
+            [0xE, n2, 0x9, 0xE] => Operation::SkipIfKeyPressed {
                 x: nibble::to_n(n2),
             },
-            [0xE, n2, 0xA, 0x1] => Instruction::SkipIfKeyNotPressed {
+            [0xE, n2, 0xA, 0x1] => Operation::SkipIfKeyNotPressed {
                 x: nibble::to_n(n2),
             },
-            [0xF, n2, 0x0, 0x7] => Instruction::SetCurrentDelayTimerValueToRegister {
+            [0xF, n2, 0x0, 0x7] => Operation::SetCurrentDelayTimerValueToRegister {
                 x: nibble::to_n(n2),
             },
-            [0xF, n2, 0x0, 0xA] => Instruction::GetKey {
+            [0xF, n2, 0x0, 0xA] => Operation::GetKey {
                 x: nibble::to_n(n2),
             },
-            [0xF, n2, 0x1, 0x5] => Instruction::SetDelayTimer {
+            [0xF, n2, 0x1, 0x5] => Operation::SetDelayTimer {
                 x: nibble::to_n(n2),
             },
-            [0xF, n2, 0x1, 0x8] => Instruction::SetSoundTimer {
+            [0xF, n2, 0x1, 0x8] => Operation::SetSoundTimer {
                 x: nibble::to_n(n2),
             },
-            [0xF, n2, 0x1, 0xE] => Instruction::AddToIndex {
+            [0xF, n2, 0x1, 0xE] => Operation::AddToIndex {
                 x: nibble::to_n(n2),
             },
-            [0xF, n2, 0x2, 0x9] => Instruction::LoadFont {
+            [0xF, n2, 0x2, 0x9] => Operation::LoadFont {
                 x: nibble::to_n(n2),
             },
-            [0xF, n2, 0x3, 0x3] => Instruction::BinaryCodedDecimalConversion {
+            [0xF, n2, 0x3, 0x3] => Operation::BinaryCodedDecimalConversion {
                 x: nibble::to_n(n2),
             },
-            [0xF, n2, 0x5, 0x5] => Instruction::StoreMemory {
+            [0xF, n2, 0x5, 0x5] => Operation::StoreMemory {
                 x: nibble::to_n(n2),
             },
-            [0xF, n2, 0x6, 0x5] => Instruction::LoadMemory {
+            [0xF, n2, 0x6, 0x5] => Operation::LoadMemory {
                 x: nibble::to_n(n2),
             },
             [n1, n2, n3, n4] => todo!("{:1X} {:1X} {:1X} {:1X}", n1, n2, n3, n4),
