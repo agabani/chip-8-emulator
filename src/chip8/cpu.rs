@@ -54,9 +54,7 @@ impl Cpu {
             Operation::LDVDT(o) => o.execute(register, delay_timer),
             Operation::LDK(o) => o.execute(register, keypad),
             Operation::LDDTV(o) => o.execute(register, delay_timer),
-            Operation::SetSoundTimer { x } => {
-                self.execute_set_sound_timer(x, sound_timer, register)
-            }
+            Operation::LDST(o) => o.execute(register, sound_timer),
             Operation::AddToIndex { x } => self.execute_add_to_index(x, register),
             Operation::LoadFont { x } => self.execute_load_font(x, register),
             Operation::BinaryCodedDecimalConversion { x } => {
@@ -65,11 +63,6 @@ impl Cpu {
             Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_set_sound_timer(&mut self, x: u8, sound_timer: &mut Timer, register: &mut Register) {
-        sound_timer.set(register.get_v_register(x));
-        register.increment_program_counter();
     }
 
     fn execute_add_to_index(&mut self, x: u8, register: &mut Register) {

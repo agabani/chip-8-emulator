@@ -61,7 +61,7 @@ pub(super) enum Operation {
     /// FX15
     LDDTV(LDDTV),
     /// FX18
-    SetSoundTimer { x: u8 },
+    LDST(LDST),
     /// FX1E
     AddToIndex { x: u8 },
     /// FX29
@@ -381,6 +381,16 @@ pub(super) struct LDDTV {
     x: u8,
 }
 
+/// Fx18 - LD ST, Vx
+///
+/// Set sound timer = Vx.
+///
+/// ST is set equal to the value of Vx.
+#[derive(Debug, PartialEq)]
+pub(super) struct LDST {
+    x: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -423,9 +433,7 @@ impl Operation {
             [0xF, n2, 0x0, 0x7] => Operation::LDVDT(LDVDT::new(nibble::to_n(n2))),
             [0xF, n2, 0x0, 0xA] => Operation::LDK(LDK::new(nibble::to_n(n2))),
             [0xF, n2, 0x1, 0x5] => Operation::LDDTV(LDDTV::new(nibble::to_n(n2))),
-            [0xF, n2, 0x1, 0x8] => Operation::SetSoundTimer {
-                x: nibble::to_n(n2),
-            },
+            [0xF, n2, 0x1, 0x8] => Operation::LDST(LDST::new(nibble::to_n(n2))),
             [0xF, n2, 0x1, 0xE] => Operation::AddToIndex {
                 x: nibble::to_n(n2),
             },
@@ -894,6 +902,17 @@ impl LDDTV {
 
     pub(super) fn execute(&self, register: &mut Register, delay_timer: &mut Timer) {
         delay_timer.set(register.get_v_register(self.x));
+        register.increment_program_counter();
+    }
+}
+
+impl LDST {
+    pub(super) fn new(x: u8) -> LDST {
+        LDST { x }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register, sound_timer: &mut Timer) {
+        sound_timer.set(register.get_v_register(self.x));
         register.increment_program_counter();
     }
 }
@@ -1601,5 +1620,22 @@ mod tests {
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
         assert_eq!(delay_timer.get(), 0x2);
+    }
+
+    #[test]
+    fn test_ldst() {
+        // Arrange
+        let mut register = Register::new();
+        let mut sound_timer = Timer::new();
+        register.set_v_register(0x4, 0x2);
+
+        let instruction = LDST::new(0x4);
+
+        // Act
+        instruction.execute(&mut register, &mut sound_timer);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(sound_timer.get(), 0x2);
     }
 }
