@@ -1,76 +1,44 @@
+#![allow(clippy::doc_markdown)]
+#![allow(clippy::upper_case_acronyms)]
+
 use super::{display::Display, keypad::Keypad, memory::Memory, register::Register, timer::Timer};
 
 #[derive(Debug, PartialEq)]
 pub(super) enum Operation {
-    /// 00E0
     CLS(CLS),
-    /// 00EE
     RET(RET),
-    /// 0NNN
     SYS(SYS),
-    /// 1NNN
     JP(JP),
-    /// 2NNN
     CALL(CALL),
-    /// 3XNN
     SE1(SE1),
-    /// 4XNN
     SNE1(SNE1),
-    /// 5XY0
     SE2(SE2),
-    /// 6XNN
     LD1(LD1),
-    /// 7XNN
     ADD1(ADD1),
-    /// 8XY0
     LD2(LD2),
-    /// 8XY1
     OR(OR),
-    /// 8XY2
     AND2(AND2),
-    /// 8XY3
     XOR(XOR),
-    /// 8XY4
     ADD2(ADD2),
-    /// 8XY5
     SUB(SUB),
-    /// 8XY6
     SHR(SHR),
-    /// 8XY7
     SUBN(SUBN),
-    /// 8XYE
     SHL(SHL),
-    /// 9XY0
     SNE2(SNE2),
-    /// ANNN
     LDI(LDI),
-    /// BNNN
     JPV0(JPV0),
-    /// CXNN
     RND(RND),
-    /// DXYN
     DRW(DRW),
-    /// EX9E
     SKP(SKP),
-    /// EXA1
     SKNP(SKNP),
-    /// FX07
     LDVDT(LDVDT),
-    /// FX0A
     LDK(LDK),
-    /// FX15
     LDDTV(LDDTV),
-    /// FX18
     LDST(LDST),
-    /// FX1E
     ADDI(ADDI),
-    /// FX29
     LDF(LDF),
-    /// FX33
     LDB(LDB),
-    /// FX55
     LDIV(LDIV),
-    /// FX65
     LDVI(LDVI),
 }
 
@@ -499,6 +467,7 @@ impl CLS {
         CLS
     }
 
+    #[allow(clippy::unused_self)]
     pub(super) fn execute(&self, register: &mut Register, display: &mut Display) {
         display.clear_screen();
         register.increment_program_counter();
@@ -510,6 +479,7 @@ impl RET {
         RET
     }
 
+    #[allow(clippy::unused_self)]
     pub(super) fn execute(&self, register: &mut Register) {
         let program_counter = register.pop_stack();
         register.set_program_counter(program_counter);
@@ -522,8 +492,9 @@ impl SYS {
         SYS { nnn }
     }
 
+    #[allow(clippy::unused_self)]
     pub(super) fn execute(&self) {
-        todo!()
+        todo!();
     }
 }
 
@@ -885,7 +856,7 @@ impl SKP {
     pub(super) fn execute(&self, register: &mut Register, keypad: &Keypad) {
         if let Some(key) = keypad.read() {
             if key == register.get_v_register(self.x) {
-                register.increment_program_counter()
+                register.increment_program_counter();
             }
         }
 
@@ -901,7 +872,7 @@ impl SKNP {
     pub(super) fn execute(&self, register: &mut Register, keypad: &Keypad) {
         if let Some(key) = keypad.read() {
             if key != register.get_v_register(self.x) {
-                register.increment_program_counter()
+                register.increment_program_counter();
             }
         } else {
             register.increment_program_counter();
@@ -986,6 +957,7 @@ impl LDB {
         LDB { x }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     pub(super) fn execute(&self, register: &mut Register, memory: &mut Memory) {
         // TODO: do not rely on string conversion
         let string = format!("{:03}", register.get_v_register(self.x));

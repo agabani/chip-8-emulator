@@ -10,8 +10,9 @@ impl Cpu {
         Cpu
     }
 
+    #[allow(clippy::unused_self)]
     pub(super) fn execute(
-        &mut self,
+        &self,
         register: &mut Register,
         display: &mut Display,
         keypad: &Keypad,
