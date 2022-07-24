@@ -19,11 +19,11 @@ pub(super) enum Operation {
     /// 5XY0
     SE2(SE2),
     /// 6XNN
-    LD(LD),
+    LD1(LD1),
     /// 7XNN
     ADD(ADD),
     /// 8XY0
-    Set { x: u8, y: u8 },
+    LD2(LD2),
     /// 8XY1
     BinaryOr { x: u8, y: u8 },
     /// 8XY2
@@ -155,7 +155,7 @@ pub(super) struct SE2 {
 ///
 /// The interpreter puts the value nn into register Vx.
 #[derive(Debug, PartialEq)]
-pub(super) struct LD {
+pub(super) struct LD1 {
     x: u8,
     nn: u8,
 }
@@ -169,6 +169,17 @@ pub(super) struct LD {
 pub(super) struct ADD {
     x: u8,
     nn: u8,
+}
+
+/// 8xy0 - LD Vx, Vy
+///
+/// Set Vx = Vy.
+///
+/// Stores the value of register Vy in register Vx.
+#[derive(Debug, PartialEq)]
+pub(super) struct LD2 {
+    x: u8,
+    y: u8,
 }
 
 impl Operation {
@@ -186,12 +197,9 @@ impl Operation {
                 Operation::SNE1(SNE1::new(nibble::to_n(n2), nibble::to_nn(n3, n4)))
             }
             [0x5, n2, n3, 0x0] => Operation::SE2(SE2::new(n2, n3)),
-            [0x6, n2, n3, n4] => Operation::LD(LD::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
+            [0x6, n2, n3, n4] => Operation::LD1(LD1::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
             [0x7, n2, n3, n4] => Operation::ADD(ADD::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
-            [0x8, n2, n3, 0x0] => Operation::Set {
-                x: nibble::to_n(n2),
-                y: nibble::to_n(n3),
-            },
+            [0x8, n2, n3, 0x0] => Operation::LD2(LD2::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0x1] => Operation::BinaryOr {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
@@ -370,9 +378,9 @@ impl SE2 {
     }
 }
 
-impl LD {
-    pub(super) fn new(x: u8, nn: u8) -> LD {
-        LD { x, nn }
+impl LD1 {
+    pub(super) fn new(x: u8, nn: u8) -> LD1 {
+        LD1 { x, nn }
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
@@ -389,6 +397,17 @@ impl ADD {
     pub(super) fn execute(&self, register: &mut Register) {
         let (nn, _) = register.get_v_register(self.x).overflowing_add(self.nn);
         register.set_v_register(self.x, nn);
+        register.increment_program_counter();
+    }
+}
+
+impl LD2 {
+    pub(super) fn new(x: u8, y: u8) -> LD2 {
+        LD2 { x, y }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        register.set_v_register(self.x, register.get_v_register(self.y));
         register.increment_program_counter();
     }
 }
@@ -584,10 +603,10 @@ mod tests {
     }
 
     #[test]
-    fn test_ld() {
+    fn test_ld1() {
         // Arrange
         let mut register = Register::new();
-        let instruction = LD::new(0x4, 0x2);
+        let instruction = LD1::new(0x4, 0x2);
 
         // Act
         instruction.execute(&mut register);
@@ -626,5 +645,20 @@ mod tests {
         assert_eq!(register.get_program_counter(), 0x202);
         assert_eq!(register.get_v_register(0x4), 0x1);
         assert_eq!(register.get_v_register(0xF), 0x0);
+    }
+
+    #[test]
+    fn test_ld2() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x7, 0x2);
+        let instruction = LD2::new(0x4, 0x7);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_v_register(0x4), 0x2);
     }
 }

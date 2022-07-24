@@ -33,9 +33,9 @@ impl Cpu {
             Operation::SE1(o) => o.execute(register),
             Operation::SNE1(o) => o.execute(register),
             Operation::SE2(o) => o.execute(register),
-            Operation::LD(o) => o.execute(register),
+            Operation::LD1(o) => o.execute(register),
             Operation::ADD(o) => o.execute(register),
-            Operation::Set { x, y } => self.execute_set(x, y, register),
+            Operation::LD2(o) => o.execute(register),
             Operation::BinaryAnd { x, y } => self.execute_binary_add(x, y, register),
             Operation::BinaryOr { x, y } => self.execute_binary_or(x, y, register),
             Operation::LogicalXor { x, y } => self.execute_logical_xor(x, y, register),
@@ -76,11 +76,6 @@ impl Cpu {
             Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_set(&mut self, x: u8, y: u8, register: &mut Register) {
-        register.set_v_register(x, register.get_v_register(y));
-        register.increment_program_counter();
     }
 
     fn execute_binary_add(&mut self, x: u8, y: u8, register: &mut Register) {
