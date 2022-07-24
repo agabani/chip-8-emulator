@@ -11,7 +11,7 @@ pub(super) enum Instruction {
     /// 1NNN
     JP(JP),
     /// 2NNN
-    Call { nnn: u16 },
+    CALL(CALL),
     /// 3XNN
     SkipIfEqual1 { x: u8, nn: u8 },
     /// 4XNN
@@ -106,6 +106,16 @@ pub(super) struct JP {
     nnn: u16,
 }
 
+/// 2nnn - CALL addr
+///
+/// Call subroutine at nnn.
+///
+/// The interpreter increments the stack pointer, then puts the current PC on the top of the stack. The PC is then set to nnn.
+#[derive(Debug, PartialEq)]
+pub(super) struct CALL {
+    nnn: u16,
+}
+
 impl Instruction {
     pub(super) fn parse(bytes: [u8; 2]) -> Instruction {
         let nibbles = nibble::from_bytes(bytes);
@@ -115,9 +125,7 @@ impl Instruction {
             [0x0, 0x0, 0xE, 0xE] => Instruction::RET(RET::new()),
             [0x0, n2, n3, n4] => Instruction::SYS(SYS::new(nibble::to_nnn(n2, n3, n4))),
             [0x1, n2, n3, n4] => Instruction::JP(JP::new(nibble::to_nnn(n2, n3, n4))),
-            [0x2, n2, n3, n4] => Instruction::Call {
-                nnn: nibble::to_nnn(n2, n3, n4),
-            },
+            [0x2, n2, n3, n4] => Instruction::CALL(CALL::new(nibble::to_nnn(n2, n3, n4))),
             [0x3, n2, n3, n4] => Instruction::SkipIfEqual1 {
                 x: nibble::to_n(n2),
                 nn: nibble::to_nn(n3, n4),
@@ -267,6 +275,17 @@ impl JP {
     }
 }
 
+impl CALL {
+    pub(super) fn new(nnn: u16) -> CALL {
+        CALL { nnn }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        register.push_stack(register.get_program_counter());
+        register.set_program_counter(self.nnn);
+    }
+}
+
 mod nibble {
     pub(super) fn from_bytes(bytes: [u8; 2]) -> [u8; 4] {
         [
@@ -355,5 +374,19 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x400);
+    }
+
+    #[test]
+    fn test_call() {
+        // Arrange
+        let mut register = Register::new();
+        let instruction = CALL::new(0x400);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x400);
+        assert_eq!(register.pop_stack(), 0x200);
     }
 }

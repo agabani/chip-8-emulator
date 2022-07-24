@@ -29,7 +29,7 @@ impl Cpu {
             Instruction::RET(i) => i.execute(register),
             Instruction::SYS(i) => i.execute(),
             Instruction::JP(i) => i.execute(register),
-            Instruction::Call { nnn } => self.execute_call(nnn, register),
+            Instruction::CALL(i) => i.execute(register),
             Instruction::SkipIfEqual1 { x, nn } => self.execute_skip_if_equal_1(x, nn, register),
             Instruction::SkipIfNotEqual1 { x, nn } => {
                 self.execute_skip_if_not_equal_1(x, nn, register)
@@ -82,11 +82,6 @@ impl Cpu {
             Instruction::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Instruction::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_call(&mut self, nnn: u16, register: &mut Register) {
-        register.push_stack(register.get_program_counter());
-        register.set_program_counter(nnn);
     }
 
     fn execute_skip_if_equal_1(&mut self, x: u8, nn: u8, register: &mut Register) {
