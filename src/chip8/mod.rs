@@ -101,7 +101,7 @@ mod tests {
     use std::io::Read;
 
     use super::{
-        operation::{Operation, CLS, JP, LD},
+        operation::{Operation, ADD, CLS, JP, LD},
         *,
     };
 
@@ -145,7 +145,7 @@ mod tests {
                 y: 0x1,
                 n: 0xF,
             },
-            Operation::AddValueToRegister { x: 0x0, nn: 0x09 },
+            Operation::ADD(ADD::new(0x0, 0x09)),
             Operation::SetIndexRegister { nnn: 0x239 },
             Operation::DisplayDraw {
                 x: 0x0,
@@ -154,20 +154,20 @@ mod tests {
             },
             // 00000010
             Operation::SetIndexRegister { nnn: 0x248 },
-            Operation::AddValueToRegister { x: 0x0, nn: 0x08 },
+            Operation::ADD(ADD::new(0x0, 0x08)),
             Operation::DisplayDraw {
                 x: 0x0,
                 y: 0x1,
                 n: 0xF,
             },
-            Operation::AddValueToRegister { x: 0x0, nn: 0x04 },
+            Operation::ADD(ADD::new(0x0, 0x04)),
             Operation::SetIndexRegister { nnn: 0x257 },
             Operation::DisplayDraw {
                 x: 0x0,
                 y: 0x1,
                 n: 0xF,
             },
-            Operation::AddValueToRegister { x: 0x0, nn: 0x08 },
+            Operation::ADD(ADD::new(0x0, 0x08)),
             Operation::SetIndexRegister { nnn: 0x266 },
             // 00000020
             Operation::DisplayDraw {
@@ -175,7 +175,7 @@ mod tests {
                 y: 0x1,
                 n: 0xF,
             },
-            Operation::AddValueToRegister { x: 0x0, nn: 0x08 },
+            Operation::ADD(ADD::new(0x0, 0x08)),
             Operation::SetIndexRegister { nnn: 0x275 },
             Operation::DisplayDraw {
                 x: 0x0,

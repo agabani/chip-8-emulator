@@ -21,7 +21,7 @@ pub(super) enum Operation {
     /// 6XNN
     LD(LD),
     /// 7XNN
-    AddValueToRegister { x: u8, nn: u8 },
+    ADD(ADD),
     /// 8XY0
     Set { x: u8, y: u8 },
     /// 8XY1
@@ -160,6 +160,17 @@ pub(super) struct LD {
     nn: u8,
 }
 
+/// 7xnn - ADD Vx, byte
+///
+/// Set Vx = Vx + nn.
+///
+/// Adds the value nn to the value of register Vx, then stores the result in Vx.
+#[derive(Debug, PartialEq)]
+pub(super) struct ADD {
+    x: u8,
+    nn: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -176,10 +187,7 @@ impl Operation {
             }
             [0x5, n2, n3, 0x0] => Operation::SE2(SE2::new(n2, n3)),
             [0x6, n2, n3, n4] => Operation::LD(LD::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
-            [0x7, n2, n3, n4] => Operation::AddValueToRegister {
-                x: nibble::to_n(n2),
-                nn: nibble::to_nn(n3, n4),
-            },
+            [0x7, n2, n3, n4] => Operation::ADD(ADD::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
             [0x8, n2, n3, 0x0] => Operation::Set {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
@@ -369,6 +377,18 @@ impl LD {
 
     pub(super) fn execute(&self, register: &mut Register) {
         register.set_v_register(self.x, self.nn);
+        register.increment_program_counter();
+    }
+}
+
+impl ADD {
+    pub(super) fn new(x: u8, nn: u8) -> ADD {
+        ADD { x, nn }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        let (nn, _) = register.get_v_register(self.x).overflowing_add(self.nn);
+        register.set_v_register(self.x, nn);
         register.increment_program_counter();
     }
 }
@@ -575,5 +595,36 @@ mod tests {
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
         assert_eq!(register.get_v_register(0x4), 0x2);
+    }
+
+    #[test]
+    fn test_add() {
+        // Arrange
+        let mut register = Register::new();
+        let instruction = ADD::new(0x4, 0x2);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_v_register(0x4), 0x2);
+        assert_eq!(register.get_v_register(0xF), 0x0);
+    }
+
+    #[test]
+    fn test_add_overflow() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x4, 0xFF);
+        let instruction = ADD::new(0x4, 0x2);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_v_register(0x4), 0x1);
+        assert_eq!(register.get_v_register(0xF), 0x0);
     }
 }
