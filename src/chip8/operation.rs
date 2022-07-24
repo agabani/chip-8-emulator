@@ -21,13 +21,13 @@ pub(super) enum Operation {
     /// 6XNN
     LD1(LD1),
     /// 7XNN
-    ADD(ADD),
+    ADD1(ADD1),
     /// 8XY0
     LD2(LD2),
     /// 8XY1
     OR(OR),
     /// 8XY2
-    BinaryAnd { x: u8, y: u8 },
+    AND2(AND2),
     /// 8XY3
     LogicalXor { x: u8, y: u8 },
     /// 8XY4
@@ -166,7 +166,7 @@ pub(super) struct LD1 {
 ///
 /// Adds the value nn to the value of register Vx, then stores the result in Vx.
 #[derive(Debug, PartialEq)]
-pub(super) struct ADD {
+pub(super) struct ADD1 {
     x: u8,
     nn: u8,
 }
@@ -193,6 +193,17 @@ pub(super) struct OR {
     y: u8,
 }
 
+/// 8xy2 - AND Vx, Vy
+///
+/// Set Vx = Vx AND Vy.
+///
+///  Performs a bitwise AND on the values of Vx and Vy, then stores the result in Vx. A bitwise AND compares the corrseponding bits from two values, and if both bits are 1, then the same bit in the result is also 1. Otherwise, it is 0.
+#[derive(Debug, PartialEq)]
+pub(super) struct AND2 {
+    x: u8,
+    y: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -209,13 +220,12 @@ impl Operation {
             }
             [0x5, n2, n3, 0x0] => Operation::SE2(SE2::new(n2, n3)),
             [0x6, n2, n3, n4] => Operation::LD1(LD1::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
-            [0x7, n2, n3, n4] => Operation::ADD(ADD::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
+            [0x7, n2, n3, n4] => {
+                Operation::ADD1(ADD1::new(nibble::to_n(n2), nibble::to_nn(n3, n4)))
+            }
             [0x8, n2, n3, 0x0] => Operation::LD2(LD2::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0x1] => Operation::OR(OR::new(nibble::to_n(n2), nibble::to_n(n3))),
-            [0x8, n2, n3, 0x2] => Operation::BinaryAnd {
-                x: nibble::to_n(n2),
-                y: nibble::to_n(n3),
-            },
+            [0x8, n2, n3, 0x2] => Operation::AND2(AND2::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0x3] => Operation::LogicalXor {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
@@ -397,9 +407,9 @@ impl LD1 {
     }
 }
 
-impl ADD {
-    pub(super) fn new(x: u8, nn: u8) -> ADD {
-        ADD { x, nn }
+impl ADD1 {
+    pub(super) fn new(x: u8, nn: u8) -> ADD1 {
+        ADD1 { x, nn }
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
@@ -429,6 +439,20 @@ impl OR {
         register.set_v_register(
             self.x,
             register.get_v_register(self.x) | register.get_v_register(self.y),
+        );
+        register.increment_program_counter();
+    }
+}
+
+impl AND2 {
+    pub(super) fn new(x: u8, y: u8) -> AND2 {
+        AND2 { x, y }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        register.set_v_register(
+            self.x,
+            register.get_v_register(self.x) & register.get_v_register(self.y),
         );
         register.increment_program_counter();
     }
@@ -639,10 +663,10 @@ mod tests {
     }
 
     #[test]
-    fn test_add() {
+    fn test_add1() {
         // Arrange
         let mut register = Register::new();
-        let instruction = ADD::new(0x4, 0x2);
+        let instruction = ADD1::new(0x4, 0x2);
 
         // Act
         instruction.execute(&mut register);
@@ -654,11 +678,11 @@ mod tests {
     }
 
     #[test]
-    fn test_add_overflow() {
+    fn test_add1_overflow() {
         // Arrange
         let mut register = Register::new();
         register.set_v_register(0x4, 0xFF);
-        let instruction = ADD::new(0x4, 0x2);
+        let instruction = ADD1::new(0x4, 0x2);
 
         // Act
         instruction.execute(&mut register);
@@ -688,8 +712,8 @@ mod tests {
     fn test_or() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x7, 0b01010000);
-        register.set_v_register(0x4, 0b10100000);
+        register.set_v_register(0x7, 0b01010101);
+        register.set_v_register(0x4, 0b10100101);
         let instruction = OR::new(0x4, 0x7);
 
         // Act
@@ -697,6 +721,22 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0b11110000);
+        assert_eq!(register.get_v_register(0x4), 0b11110101);
+    }
+
+    #[test]
+    fn test_and2() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x7, 0b01010101);
+        register.set_v_register(0x4, 0b10100101);
+        let instruction = AND2::new(0x4, 0x7);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_v_register(0x4), 0b00000101);
     }
 }

@@ -34,10 +34,10 @@ impl Cpu {
             Operation::SNE1(o) => o.execute(register),
             Operation::SE2(o) => o.execute(register),
             Operation::LD1(o) => o.execute(register),
-            Operation::ADD(o) => o.execute(register),
+            Operation::ADD1(o) => o.execute(register),
             Operation::LD2(o) => o.execute(register),
             Operation::OR(o) => o.execute(register),
-            Operation::BinaryAnd { x, y } => self.execute_binary_add(x, y, register),
+            Operation::AND2(o) => o.execute(register),
             Operation::LogicalXor { x, y } => self.execute_logical_xor(x, y, register),
             Operation::Add { x, y } => self.execute_and(x, y, register),
             Operation::SubtractRightFromLeft { x, y } => {
@@ -76,11 +76,6 @@ impl Cpu {
             Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_binary_add(&mut self, x: u8, y: u8, register: &mut Register) {
-        register.set_v_register(x, register.get_v_register(x) & register.get_v_register(y));
-        register.increment_program_counter();
     }
 
     fn execute_logical_xor(&mut self, x: u8, y: u8, register: &mut Register) {
