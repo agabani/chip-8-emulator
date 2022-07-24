@@ -40,9 +40,7 @@ impl Cpu {
             Operation::AND2(o) => o.execute(register),
             Operation::XOR(o) => o.execute(register),
             Operation::ADD2(o) => o.execute(register),
-            Operation::SubtractRightFromLeft { x, y } => {
-                self.execute_subtract_right_from_left(x, y, register)
-            }
+            Operation::SUB(o) => o.execute(register),
             Operation::ShiftRight { x, y } => self.execute_shift_right(x, y, register),
             Operation::ShiftLeft { x, y } => self.execute_shift_left(x, y, register),
             Operation::SkipIfNotEqual2 { x, y } => self.execute_skip_if_not_equal_2(x, y, register),
@@ -76,22 +74,6 @@ impl Cpu {
             Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_subtract_right_from_left(&mut self, x: u8, y: u8, register: &mut Register) {
-        if register.get_v_register(x) > register.get_v_register(y) {
-            register.set_v_register(0xF, 1);
-        } else {
-            register.set_v_register(0xF, 0);
-        }
-
-        let (nn, _) = register
-            .get_v_register(x)
-            .overflowing_sub(register.get_v_register(y));
-
-        register.set_v_register(x, nn);
-
-        register.increment_program_counter();
     }
 
     fn execute_shift_right(&mut self, x: u8, y: u8, register: &mut Register) {

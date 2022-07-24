@@ -33,7 +33,7 @@ pub(super) enum Operation {
     /// 8XY4
     ADD2(ADD2),
     /// 8XY5
-    SubtractRightFromLeft { x: u8, y: u8 },
+    SUB(SUB),
     /// 8XY6
     ShiftRight { x: u8, y: u8 },
     /// 8XYE
@@ -226,6 +226,17 @@ pub(super) struct ADD2 {
     y: u8,
 }
 
+/// 8xy5 - SUB Vx, Vy
+///
+/// Set Vx = Vx - Vy, set VF = NOT borrow.
+///
+/// If Vx > Vy, then VF is set to 1, otherwise 0. Then Vy is subtracted from Vx, and the results stored in Vx.
+#[derive(Debug, PartialEq)]
+pub(super) struct SUB {
+    x: u8,
+    y: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -250,10 +261,7 @@ impl Operation {
             [0x8, n2, n3, 0x2] => Operation::AND2(AND2::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0x3] => Operation::XOR(XOR::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0x4] => Operation::ADD2(ADD2::new(nibble::to_n(n2), nibble::to_n(n3))),
-            [0x8, n2, n3, 0x5] => Operation::SubtractRightFromLeft {
-                x: nibble::to_n(n2),
-                y: nibble::to_n(n3),
-            },
+            [0x8, n2, n3, 0x5] => Operation::SUB(SUB::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0x6] => Operation::ShiftRight {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
@@ -502,6 +510,27 @@ impl ADD2 {
             register.set_v_register(0xF, 0x1);
         } else {
             register.set_v_register(0xF, 0x0);
+        }
+
+        register.set_v_register(self.x, nn);
+        register.increment_program_counter();
+    }
+}
+
+impl SUB {
+    pub(super) fn new(x: u8, y: u8) -> SUB {
+        SUB { x, y }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        let (nn, overflow) = register
+            .get_v_register(self.x)
+            .overflowing_sub(register.get_v_register(self.y));
+
+        if overflow {
+            register.set_v_register(0xF, 0x0);
+        } else {
+            register.set_v_register(0xF, 0x1);
         }
 
         register.set_v_register(self.x, nn);
@@ -839,5 +868,39 @@ mod tests {
         assert_eq!(register.get_program_counter(), 0x202);
         assert_eq!(register.get_v_register(0x4), 0x1);
         assert_eq!(register.get_v_register(0xF), 0x1);
+    }
+
+    #[test]
+    fn test_sub() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x4, 0x7);
+        register.set_v_register(0x2, 0x3);
+        let instruction = SUB::new(0x4, 0x2);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_v_register(0x4), 0x04);
+        assert_eq!(register.get_v_register(0xF), 0x1);
+    }
+
+    #[test]
+    fn test_sub_overflow() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x4, 0x0);
+        register.set_v_register(0x2, 0x2);
+        let instruction = SUB::new(0x4, 0x2);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_v_register(0x4), 0xFE);
+        assert_eq!(register.get_v_register(0xF), 0x0);
     }
 }
