@@ -4,14 +4,13 @@ mod font;
 mod instruction;
 pub(crate) mod keypad;
 mod memory;
+mod register;
 mod timer;
 
-use cpu::Cpu;
-use display::Display;
-use font::Font;
-use keypad::Keypad;
-use memory::Memory;
-use timer::Timer;
+use self::{
+    cpu::Cpu, display::Display, font::Font, keypad::Keypad, memory::Memory, register::Register,
+    timer::Timer,
+};
 
 pub(crate) struct Emulator {
     cpu: Cpu,
@@ -21,6 +20,7 @@ pub(crate) struct Emulator {
     keypad: Keypad,
     memory: Memory,
     paused: bool,
+    register: Register,
     sound_timer: Timer,
     time: std::time::Duration,
 }
@@ -35,6 +35,7 @@ impl Emulator {
             keypad: Keypad::new(),
             memory: Memory::new(),
             paused: true,
+            register: Register::new(),
             sound_timer: Timer::new(),
             time: std::time::Duration::ZERO,
         };
@@ -64,6 +65,7 @@ impl Emulator {
 
         for _ in 0..delta_executions {
             self.cpu.execute(
+                &mut self.register,
                 &mut self.display,
                 &self.keypad,
                 &mut self.memory,
