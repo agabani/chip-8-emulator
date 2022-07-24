@@ -57,30 +57,10 @@ impl Cpu {
             Operation::LDST(o) => o.execute(register, sound_timer),
             Operation::ADDI(o) => o.execute(register),
             Operation::LDF(o) => o.execute(register),
-            Operation::BinaryCodedDecimalConversion { x } => {
-                self.execute_binary_coded_decimal_conversion(x, memory, register)
-            }
+            Operation::LDB(o) => o.execute(register, memory),
             Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_binary_coded_decimal_conversion(
-        &mut self,
-        x: u8,
-        memory: &mut Memory,
-        register: &mut Register,
-    ) {
-        // TODO: do not rely on string conversion
-        let string = format!("{:03}", register.get_v_register(x));
-
-        for (i, c) in string.chars().enumerate() {
-            memory.set_byte(
-                register.get_index_register() + i as u16,
-                c.to_digit(10).unwrap() as u8,
-            );
-        }
-        register.increment_program_counter();
     }
 
     fn execute_store_memory(&mut self, x: u8, memory: &mut Memory, register: &mut Register) {

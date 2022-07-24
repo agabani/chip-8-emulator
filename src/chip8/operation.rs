@@ -67,7 +67,7 @@ pub(super) enum Operation {
     /// FX29
     LDF(LDF),
     /// FX33
-    BinaryCodedDecimalConversion { x: u8 },
+    LDB(LDB),
     /// FX55
     StoreMemory { x: u8 },
     /// FX65
@@ -411,6 +411,16 @@ pub(super) struct LDF {
     x: u8,
 }
 
+/// Fx33 - LD B, Vx
+///
+/// Store BCD representation of Vx in memory locations I, I+1, and I+2.
+///
+/// The interpreter takes the decimal value of Vx, and places the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.
+#[derive(Debug, PartialEq)]
+pub(super) struct LDB {
+    x: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -456,9 +466,7 @@ impl Operation {
             [0xF, n2, 0x1, 0x8] => Operation::LDST(LDST::new(nibble::to_n(n2))),
             [0xF, n2, 0x1, 0xE] => Operation::ADDI(ADDI::new(nibble::to_n(n2))),
             [0xF, n2, 0x2, 0x9] => Operation::LDF(LDF::new(nibble::to_n(n2))),
-            [0xF, n2, 0x3, 0x3] => Operation::BinaryCodedDecimalConversion {
-                x: nibble::to_n(n2),
-            },
+            [0xF, n2, 0x3, 0x3] => Operation::LDB(LDB::new(nibble::to_n(n2))),
             [0xF, n2, 0x5, 0x5] => Operation::StoreMemory {
                 x: nibble::to_n(n2),
             },
@@ -953,6 +961,25 @@ impl LDF {
 
     pub(super) fn execute(&self, register: &mut Register) {
         register.set_index_register(0x050 + u16::from(register.get_v_register(self.x)) * 0x5);
+        register.increment_program_counter();
+    }
+}
+
+impl LDB {
+    pub(super) fn new(x: u8) -> LDB {
+        LDB { x }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register, memory: &mut Memory) {
+        // TODO: do not rely on string conversion
+        let string = format!("{:03}", register.get_v_register(self.x));
+
+        for (i, c) in string.chars().enumerate() {
+            memory.set_byte(
+                register.get_index_register() + i as u16,
+                c.to_digit(10).unwrap() as u8,
+            );
+        }
         register.increment_program_counter();
     }
 }
@@ -1720,5 +1747,24 @@ mod tests {
         // Assert
         assert_eq!(register.get_program_counter(), 0x204);
         assert_eq!(register.get_index_register(), 0x055);
+    }
+
+    #[test]
+    fn test_ldb() {
+        // Arrange
+        let mut register = Register::new();
+        let mut memory = Memory::new();
+        let instruction = LDB::new(0x4);
+        register.set_index_register(0x400);
+        register.set_v_register(0x4, 0xF6);
+
+        // Act
+        instruction.execute(&mut register, &mut memory);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(memory.get_byte(0x400 + 0x0), 0x2);
+        assert_eq!(memory.get_byte(0x400 + 0x1), 0x4);
+        assert_eq!(memory.get_byte(0x400 + 0x2), 0x6);
     }
 }
