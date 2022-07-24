@@ -101,7 +101,7 @@ mod tests {
     use std::io::Read;
 
     use super::{
-        instruction::{Instruction, CLS},
+        instruction::{Instruction, CLS, JP},
         *,
     };
 
@@ -182,7 +182,7 @@ mod tests {
                 y: 0x1,
                 n: 0xF,
             },
-            Instruction::Jump { nnn: 0x228 },
+            Instruction::JP(JP::new(0x228)),
         ];
 
         for (index, instruction) in instructions.into_iter().enumerate() {
