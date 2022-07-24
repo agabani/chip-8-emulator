@@ -49,9 +49,7 @@ impl Cpu {
             Operation::JPV0(o) => o.execute(register),
             Operation::RND(o) => o.execute(register),
             Operation::DRW(o) => o.execute(register, display, memory),
-            Operation::SkipIfKeyPressed { x } => {
-                self.execute_skip_if_key_pressed(x, keypad, register)
-            }
+            Operation::SKP(o) => o.execute(register, keypad),
             Operation::SkipIfKeyNotPressed { x } => {
                 self.execute_skip_if_key_not_pressed(x, keypad, register)
             }
@@ -73,14 +71,6 @@ impl Cpu {
             Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_skip_if_key_pressed(&mut self, x: u8, keypad: &Keypad, register: &mut Register) {
-        match keypad.read() {
-            Some(key) if key == register.get_v_register(x) => register.increment_program_counter(),
-            _ => {}
-        }
-        register.increment_program_counter();
     }
 
     fn execute_skip_if_key_not_pressed(&mut self, x: u8, keypad: &Keypad, register: &mut Register) {

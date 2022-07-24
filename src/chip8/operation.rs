@@ -1,4 +1,4 @@
-use super::{display::Display, memory::Memory, register::Register};
+use super::{display::Display, keypad::Keypad, memory::Memory, register::Register};
 
 #[derive(Debug, PartialEq)]
 pub(super) enum Operation {
@@ -51,7 +51,7 @@ pub(super) enum Operation {
     /// DXYN
     DRW(DRW),
     /// EX9E
-    SkipIfKeyPressed { x: u8 },
+    SKP(SKP),
     /// EXA1
     SkipIfKeyNotPressed { x: u8 },
     /// FX07
@@ -331,6 +331,16 @@ pub(super) struct DRW {
     n: u8,
 }
 
+/// Ex9E - SKP Vx
+///
+/// Skip next instruction if key with the value of Vx is pressed.
+///
+/// Checks the keyboard, and if the key corresponding to the value of Vx is currently in the down position, PC is increased by 2.
+#[derive(Debug, PartialEq)]
+pub(super) struct SKP {
+    x: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -368,9 +378,7 @@ impl Operation {
                 nibble::to_n(n3),
                 nibble::to_n(n4),
             )),
-            [0xE, n2, 0x9, 0xE] => Operation::SkipIfKeyPressed {
-                x: nibble::to_n(n2),
-            },
+            [0xE, n2, 0x9, 0xE] => Operation::SKP(SKP::new(nibble::to_n(n2))),
             [0xE, n2, 0xA, 0x1] => Operation::SkipIfKeyNotPressed {
                 x: nibble::to_n(n2),
             },
@@ -782,6 +790,22 @@ impl DRW {
 
             if y + row == 31 {
                 break;
+            }
+        }
+
+        register.increment_program_counter();
+    }
+}
+
+impl SKP {
+    pub(super) fn new(x: u8) -> SKP {
+        SKP { x }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register, keypad: &Keypad) {
+        if let Some(key) = keypad.read() {
+            if key == register.get_v_register(self.x) {
+                register.increment_program_counter()
             }
         }
 
@@ -1324,5 +1348,55 @@ mod tests {
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
         assert_ne!(register.get_v_register(0x4), 0xFF);
+    }
+
+    #[test]
+    fn test_skp_equal() {
+        // Arrange
+        let mut register = Register::new();
+        let mut keypad = Keypad::new();
+        register.set_v_register(0x4, 0x2);
+        keypad.pressed(crate::chip8::keypad::Key::Key2);
+
+        let instruction = SKP::new(0x4);
+
+        // Act
+        instruction.execute(&mut register, &keypad);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x204);
+    }
+
+    #[test]
+    fn test_skp_not_equal() {
+        // Arrange
+        let mut register = Register::new();
+        let mut keypad = Keypad::new();
+        register.set_v_register(0x4, 0x7);
+        keypad.pressed(crate::chip8::keypad::Key::Key2);
+
+        let instruction = SKP::new(0x4);
+
+        // Act
+        instruction.execute(&mut register, &keypad);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+    }
+
+    #[test]
+    fn test_skp_unpressed() {
+        // Arrange
+        let mut register = Register::new();
+        let keypad = Keypad::new();
+        register.set_v_register(0x4, 0x7);
+
+        let instruction = SKP::new(0x4);
+
+        // Act
+        instruction.execute(&mut register, &keypad);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
     }
 }
