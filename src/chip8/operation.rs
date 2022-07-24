@@ -65,7 +65,7 @@ pub(super) enum Operation {
     /// FX1E
     ADDI(ADDI),
     /// FX29
-    LoadFont { x: u8 },
+    LDF(LDF),
     /// FX33
     BinaryCodedDecimalConversion { x: u8 },
     /// FX55
@@ -401,6 +401,16 @@ pub(super) struct ADDI {
     x: u8,
 }
 
+/// Fx29 - LD F, Vx
+///
+/// Set I = location of sprite for digit Vx.
+///
+/// The value of I is set to the location for the hexadecimal sprite corresponding to the value of Vx. See section 2.4, Display, for more information on the Chip-8 hexadecimal font.
+#[derive(Debug, PartialEq)]
+pub(super) struct LDF {
+    x: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -445,9 +455,7 @@ impl Operation {
             [0xF, n2, 0x1, 0x5] => Operation::LDDTV(LDDTV::new(nibble::to_n(n2))),
             [0xF, n2, 0x1, 0x8] => Operation::LDST(LDST::new(nibble::to_n(n2))),
             [0xF, n2, 0x1, 0xE] => Operation::ADDI(ADDI::new(nibble::to_n(n2))),
-            [0xF, n2, 0x2, 0x9] => Operation::LoadFont {
-                x: nibble::to_n(n2),
-            },
+            [0xF, n2, 0x2, 0x9] => Operation::LDF(LDF::new(nibble::to_n(n2))),
             [0xF, n2, 0x3, 0x3] => Operation::BinaryCodedDecimalConversion {
                 x: nibble::to_n(n2),
             },
@@ -934,6 +942,17 @@ impl ADDI {
         register.set_index_register(
             register.get_index_register() + u16::from(register.get_v_register(self.x)),
         );
+        register.increment_program_counter();
+    }
+}
+
+impl LDF {
+    pub(super) fn new(x: u8) -> LDF {
+        LDF { x }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        register.set_index_register(0x050 + u16::from(register.get_v_register(self.x)) * 0x5);
         register.increment_program_counter();
     }
 }
@@ -1675,5 +1694,31 @@ mod tests {
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
         assert_eq!(register.get_index_register(), 0x420);
+    }
+
+    #[test]
+    fn test_ldf() {
+        let mut register = Register::new();
+        let instruction = LDF::new(0x4);
+
+        // Arrange
+        register.set_v_register(0x4, 0x0);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_index_register(), 0x050);
+
+        // Arrange
+        register.set_v_register(0x4, 0x1);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x204);
+        assert_eq!(register.get_index_register(), 0x055);
     }
 }

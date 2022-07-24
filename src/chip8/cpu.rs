@@ -56,18 +56,13 @@ impl Cpu {
             Operation::LDDTV(o) => o.execute(register, delay_timer),
             Operation::LDST(o) => o.execute(register, sound_timer),
             Operation::ADDI(o) => o.execute(register),
-            Operation::LoadFont { x } => self.execute_load_font(x, register),
+            Operation::LDF(o) => o.execute(register),
             Operation::BinaryCodedDecimalConversion { x } => {
                 self.execute_binary_coded_decimal_conversion(x, memory, register)
             }
             Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_load_font(&mut self, x: u8, register: &mut Register) {
-        register.set_index_register(0x050 + u16::from(x) * 0x5);
-        register.increment_program_counter();
     }
 
     fn execute_binary_coded_decimal_conversion(
