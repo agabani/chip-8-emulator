@@ -44,7 +44,7 @@ impl Cpu {
             Operation::SHR(o) => o.execute(register),
             Operation::SUBN(o) => o.execute(register),
             Operation::SHL(o) => o.execute(register),
-            Operation::SkipIfNotEqual2 { x, y } => self.execute_skip_if_not_equal_2(x, y, register),
+            Operation::SNE2(o) => o.execute(register),
             Operation::SetIndexRegister { nnn } => self.execute_set_index_register(nnn, register),
             Operation::JumpWithOffset { nnn } => self.execute_jump_with_offset(nnn, register),
             Operation::Random { x, nn } => self.execute_random(x, nn, register),
@@ -75,13 +75,6 @@ impl Cpu {
             Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_skip_if_not_equal_2(&mut self, x: u8, y: u8, register: &mut Register) {
-        if register.get_v_register(x) != register.get_v_register(y) {
-            register.increment_program_counter();
-        }
-        register.increment_program_counter();
     }
 
     fn execute_set_index_register(&mut self, nnn: u16, register: &mut Register) {

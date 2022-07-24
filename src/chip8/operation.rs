@@ -41,7 +41,7 @@ pub(super) enum Operation {
     /// 8XYE
     SHL(SHL),
     /// 9XY0
-    SkipIfNotEqual2 { x: u8, y: u8 },
+    SNE2(SNE2),
     /// ANNN
     SetIndexRegister { nnn: u16 },
     /// BNNN
@@ -199,7 +199,7 @@ pub(super) struct OR {
 ///
 /// Set Vx = Vx AND Vy.
 ///
-///  Performs a bitwise AND on the values of Vx and Vy, then stores the result in Vx. A bitwise AND compares the corrseponding bits from two values, and if both bits are 1, then the same bit in the result is also 1. Otherwise, it is 0.
+/// Performs a bitwise AND on the values of Vx and Vy, then stores the result in Vx. A bitwise AND compares the corrseponding bits from two values, and if both bits are 1, then the same bit in the result is also 1. Otherwise, it is 0.
 #[derive(Debug, PartialEq)]
 pub(super) struct AND2 {
     x: u8,
@@ -210,7 +210,7 @@ pub(super) struct AND2 {
 ///
 /// Set Vx = Vx XOR Vy.
 ///
-///  Performs a bitwise exclusive OR on the values of Vx and Vy, then stores the result in Vx. An exclusive OR compares the corrseponding bits from two values, and if the bits are not both the same, then the corresponding bit in the result is set to 1. Otherwise, it is 0.
+/// Performs a bitwise exclusive OR on the values of Vx and Vy, then stores the result in Vx. An exclusive OR compares the corrseponding bits from two values, and if the bits are not both the same, then the corresponding bit in the result is set to 1. Otherwise, it is 0.
 #[derive(Debug, PartialEq)]
 pub(super) struct XOR {
     x: u8,
@@ -221,7 +221,7 @@ pub(super) struct XOR {
 ///
 /// Set Vx = Vx + Vy, set VF = carry.
 ///
-///  The values of Vx and Vy are added together. If the result is greater than 8 bits (i.e., > 255,) VF is set to 1, otherwise 0. Only the lowest 8 bits of the result are kept, and stored in Vx.
+/// The values of Vx and Vy are added together. If the result is greater than 8 bits (i.e., > 255,) VF is set to 1, otherwise 0. Only the lowest 8 bits of the result are kept, and stored in Vx.
 #[derive(Debug, PartialEq)]
 pub(super) struct ADD2 {
     x: u8,
@@ -252,9 +252,9 @@ pub(super) struct SHR {
 
 /// 8xy7 - SUBN Vx, Vy
 ///
-///  Set Vx = Vy - Vx, set VF = NOT borrow.
+/// Set Vx = Vy - Vx, set VF = NOT borrow.
 ///
-///  If Vy > Vx, then VF is set to 1, otherwise 0. Then Vx is subtracted from Vy, and the results stored in Vx.
+/// If Vy > Vx, then VF is set to 1, otherwise 0. Then Vx is subtracted from Vy, and the results stored in Vx.
 #[derive(Debug, PartialEq)]
 pub(super) struct SUBN {
     x: u8,
@@ -265,9 +265,20 @@ pub(super) struct SUBN {
 ///
 /// Set Vx = Vx SHL 1.
 ///
-///  If the most-significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is multiplied by 2.
+/// If the most-significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is multiplied by 2.
 #[derive(Debug, PartialEq)]
 pub(super) struct SHL {
+    x: u8,
+    y: u8,
+}
+
+/// 9xy0 - SNE Vx, Vy
+///
+/// Skip next instruction if Vx != Vy.
+///
+/// The values of Vx and Vy are compared, and if they are not equal, the program counter is increased by 2.
+#[derive(Debug, PartialEq)]
+pub(super) struct SNE2 {
     x: u8,
     y: u8,
 }
@@ -300,10 +311,7 @@ impl Operation {
             [0x8, n2, n3, 0x6] => Operation::SHR(SHR::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0x7] => Operation::SUBN(SUBN::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0xE] => Operation::SHL(SHL::new(nibble::to_n(n2), nibble::to_n(n3))),
-            [0x9, n2, n3, 0x0] => Operation::SkipIfNotEqual2 {
-                x: nibble::to_n(n2),
-                y: nibble::to_n(n3),
-            },
+            [0x9, n2, n3, 0x0] => Operation::SNE2(SNE2::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0xA, n2, n3, n4] => Operation::SetIndexRegister {
                 nnn: nibble::to_nnn(n2, n3, n4),
             },
@@ -629,6 +637,19 @@ impl SHL {
 
         let (nn, _) = vx.overflowing_shl(0x1);
         register.set_v_register(self.x, nn);
+        register.increment_program_counter();
+    }
+}
+
+impl SNE2 {
+    pub(super) fn new(x: u8, y: u8) -> SNE2 {
+        SNE2 { x, y }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        if register.get_v_register(self.x) != register.get_v_register(self.y) {
+            register.increment_program_counter();
+        }
         register.increment_program_counter();
     }
 }
@@ -1095,5 +1116,35 @@ mod tests {
         assert_eq!(register.get_program_counter(), 0x202);
         assert_eq!(register.get_v_register(0x4), 0b0101_1110);
         assert_eq!(register.get_v_register(0xF), 0x1);
+    }
+
+    #[test]
+    fn test_sne2_equal() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x4, 0x7);
+        register.set_v_register(0x2, 0x7);
+        let instruction = SNE2::new(0x4, 0x2);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+    }
+
+    #[test]
+    fn test_sne2_not_equal() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x4, 0x7);
+        register.set_v_register(0x2, 0x3);
+        let instruction = SNE2::new(0x4, 0x2);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x204);
     }
 }
