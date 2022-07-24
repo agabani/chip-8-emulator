@@ -30,9 +30,9 @@ impl Cpu {
             Operation::SYS(o) => o.execute(),
             Operation::JP(o) => o.execute(register),
             Operation::CALL(o) => o.execute(register),
-            Operation::SE(o) => o.execute(register),
-            Operation::SNE(o) => o.execute(register),
-            Operation::SkipIfEqual2 { x, y } => self.execute_skip_if_equal_2(x, y, register),
+            Operation::SE1(o) => o.execute(register),
+            Operation::SNE1(o) => o.execute(register),
+            Operation::SE2(o) => o.execute(register),
             Operation::SetRegister { x, nn } => self.execute_set_register(x, nn, register),
             Operation::AddValueToRegister { x, nn } => {
                 self.execute_add_value_to_register(x, nn, register)
@@ -78,13 +78,6 @@ impl Cpu {
             Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_skip_if_equal_2(&mut self, x: u8, y: u8, register: &mut Register) {
-        if register.get_v_register(x) == register.get_v_register(y) {
-            register.increment_program_counter();
-        }
-        register.increment_program_counter();
     }
 
     fn execute_set_register(&mut self, x: u8, nn: u8, register: &mut Register) {

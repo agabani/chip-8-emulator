@@ -13,11 +13,11 @@ pub(super) enum Operation {
     /// 2NNN
     CALL(CALL),
     /// 3XNN
-    SE(SE),
+    SE1(SE1),
     /// 4XNN
-    SNE(SNE),
+    SNE1(SNE1),
     /// 5XY0
-    SkipIfEqual2 { x: u8, y: u8 },
+    SE2(SE2),
     /// 6XNN
     SetRegister { x: u8, nn: u8 },
     /// 7XNN
@@ -122,7 +122,7 @@ pub(super) struct CALL {
 ///
 /// The interpreter compares register Vx to nn, and if they are equal, increments the program counter by 2.
 #[derive(Debug, PartialEq)]
-pub(super) struct SE {
+pub(super) struct SE1 {
     x: u8,
     nn: u8,
 }
@@ -133,9 +133,20 @@ pub(super) struct SE {
 ///
 /// The interpreter compares register Vx to nn, and if they are not equal, increments the program counter by 2.
 #[derive(Debug, PartialEq)]
-pub(super) struct SNE {
+pub(super) struct SNE1 {
     x: u8,
     nn: u8,
+}
+
+/// 5xy0 - SE Vx, Vy
+///
+/// Skip next instruction if Vx = Vy.
+///
+/// The interpreter compares register Vx to register Vy, and if they are equal, increments the program counter by 2.
+#[derive(Debug, PartialEq)]
+pub(super) struct SE2 {
+    x: u8,
+    y: u8,
 }
 
 impl Operation {
@@ -148,9 +159,11 @@ impl Operation {
             [0x0, n2, n3, n4] => Operation::SYS(SYS::new(nibble::to_nnn(n2, n3, n4))),
             [0x1, n2, n3, n4] => Operation::JP(JP::new(nibble::to_nnn(n2, n3, n4))),
             [0x2, n2, n3, n4] => Operation::CALL(CALL::new(nibble::to_nnn(n2, n3, n4))),
-            [0x3, n2, n3, n4] => Operation::SE(SE::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
-            [0x4, n2, n3, n4] => Operation::SNE(SNE::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
-            [0x5, n2, n3, 0x0] => Operation::SkipIfEqual2 { x: n2, y: n3 },
+            [0x3, n2, n3, n4] => Operation::SE1(SE1::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
+            [0x4, n2, n3, n4] => {
+                Operation::SNE1(SNE1::new(nibble::to_n(n2), nibble::to_nn(n3, n4)))
+            }
+            [0x5, n2, n3, 0x0] => Operation::SE2(SE2::new(n2, n3)),
             [0x6, n2, n3, n4] => Operation::SetRegister {
                 x: nibble::to_n(n2),
                 nn: nibble::to_nn(n3, n4),
@@ -302,9 +315,9 @@ impl CALL {
     }
 }
 
-impl SE {
-    pub(super) fn new(x: u8, nn: u8) -> SE {
-        SE { x, nn }
+impl SE1 {
+    pub(super) fn new(x: u8, nn: u8) -> SE1 {
+        SE1 { x, nn }
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
@@ -315,13 +328,26 @@ impl SE {
     }
 }
 
-impl SNE {
-    pub(super) fn new(x: u8, nn: u8) -> SNE {
-        SNE { x, nn }
+impl SNE1 {
+    pub(super) fn new(x: u8, nn: u8) -> SNE1 {
+        SNE1 { x, nn }
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
         if register.get_v_register(self.x) != self.nn {
+            register.increment_program_counter();
+        }
+        register.increment_program_counter();
+    }
+}
+
+impl SE2 {
+    pub(super) fn new(x: u8, y: u8) -> SE2 {
+        SE2 { x, y }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        if register.get_v_register(self.x) == register.get_v_register(self.y) {
             register.increment_program_counter();
         }
         register.increment_program_counter();
@@ -433,11 +459,11 @@ mod tests {
     }
 
     #[test]
-    fn test_se_equal() {
+    fn test_se1_equal() {
         // Arrange
         let mut register = Register::new();
         register.set_v_register(0x4, 0x2);
-        let instruction = SE::new(0x4, 0x2);
+        let instruction = SE1::new(0x4, 0x2);
 
         // Act
         instruction.execute(&mut register);
@@ -447,11 +473,11 @@ mod tests {
     }
 
     #[test]
-    fn test_se_not_equal() {
+    fn test_se1_not_equal() {
         // Arrange
         let mut register = Register::new();
         register.set_v_register(0x4, 0x2);
-        let instruction = SE::new(0x4, 0x1);
+        let instruction = SE1::new(0x4, 0x1);
 
         // Act
         instruction.execute(&mut register);
@@ -461,11 +487,11 @@ mod tests {
     }
 
     #[test]
-    fn test_sne_equal() {
+    fn test_sne1_equal() {
         // Arrange
         let mut register = Register::new();
         register.set_v_register(0x4, 0x2);
-        let instruction = SNE::new(0x4, 0x2);
+        let instruction = SNE1::new(0x4, 0x2);
 
         // Act
         instruction.execute(&mut register);
@@ -475,16 +501,46 @@ mod tests {
     }
 
     #[test]
-    fn test_sne_not_equal() {
+    fn test_sne1_not_equal() {
         // Arrange
         let mut register = Register::new();
         register.set_v_register(0x4, 0x2);
-        let instruction = SNE::new(0x4, 0x1);
+        let instruction = SNE1::new(0x4, 0x1);
 
         // Act
         instruction.execute(&mut register);
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x204);
+    }
+
+    #[test]
+    fn test_se2_equal() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x4, 0x7);
+        register.set_v_register(0x2, 0x7);
+        let instruction = SE2::new(0x4, 0x2);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x204);
+    }
+
+    #[test]
+    fn test_se2_not_equal() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x4, 0x7);
+        register.set_v_register(0x2, 0x3);
+        let instruction = SE2::new(0x4, 0x2);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
     }
 }
