@@ -47,7 +47,7 @@ pub(super) enum Operation {
     /// BNNN
     JPV0(JPV0),
     /// CXNN
-    Random { x: u8, nn: u8 },
+    RND(RND),
     /// DXYN
     DisplayDraw { x: u8, y: u8, n: u8 },
     /// EX9E
@@ -303,6 +303,17 @@ pub(super) struct JPV0 {
     nnn: u16,
 }
 
+/// Cxnn - RND Vx, byte
+///
+/// Set Vx = random byte AND nn.
+///
+/// The interpreter generates a random number from 0 to 255, which is then ANDed with the value kk. The results are stored in Vx. See instruction 8xy2 for more information on AND.
+#[derive(Debug, PartialEq)]
+pub(super) struct RND {
+    x: u8,
+    nn: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -334,10 +345,7 @@ impl Operation {
             [0x9, n2, n3, 0x0] => Operation::SNE2(SNE2::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0xA, n2, n3, n4] => Operation::LDI(LDI::new(nibble::to_nnn(n2, n3, n4))),
             [0xB, n2, n3, n4] => Operation::JPV0(JPV0::new(nibble::to_nnn(n2, n3, n4))),
-            [0xC, n2, n3, n4] => Operation::Random {
-                x: nibble::to_n(n2),
-                nn: nibble::to_nn(n3, n4),
-            },
+            [0xC, n2, n3, n4] => Operation::RND(RND::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
             [0xD, n2, n3, n4] => Operation::DisplayDraw {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
@@ -688,6 +696,17 @@ impl JPV0 {
 
     pub(super) fn execute(&self, register: &mut Register) {
         register.set_program_counter(self.nnn + u16::from(register.get_v_register(0x0)));
+    }
+}
+
+impl RND {
+    pub(super) fn new(x: u8, nn: u8) -> RND {
+        RND { x, nn }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        register.set_v_register(self.x, rand::random::<u8>() & self.nn);
+        register.increment_program_counter();
     }
 }
 
@@ -1211,5 +1230,20 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x420);
+    }
+
+    #[test]
+    fn test_rnd() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x4, 0xFF);
+        let instruction = RND::new(0x4, 0x42);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_ne!(register.get_v_register(0x4), 0xFF);
     }
 }
