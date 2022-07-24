@@ -29,7 +29,7 @@ pub(super) enum Operation {
     /// 8XY2
     AND2(AND2),
     /// 8XY3
-    LogicalXor { x: u8, y: u8 },
+    XOR(XOR),
     /// 8XY4
     Add { x: u8, y: u8 },
     /// 8XY5
@@ -204,6 +204,17 @@ pub(super) struct AND2 {
     y: u8,
 }
 
+/// 8xy3 - XOR Vx, Vy
+///
+/// Set Vx = Vx XOR Vy.
+///
+///  Performs a bitwise exclusive OR on the values of Vx and Vy, then stores the result in Vx. An exclusive OR compares the corrseponding bits from two values, and if the bits are not both the same, then the corresponding bit in the result is set to 1. Otherwise, it is 0.
+#[derive(Debug, PartialEq)]
+pub(super) struct XOR {
+    x: u8,
+    y: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -226,10 +237,7 @@ impl Operation {
             [0x8, n2, n3, 0x0] => Operation::LD2(LD2::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0x1] => Operation::OR(OR::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0x2] => Operation::AND2(AND2::new(nibble::to_n(n2), nibble::to_n(n3))),
-            [0x8, n2, n3, 0x3] => Operation::LogicalXor {
-                x: nibble::to_n(n2),
-                y: nibble::to_n(n3),
-            },
+            [0x8, n2, n3, 0x3] => Operation::XOR(XOR::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0x4] => Operation::Add {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
@@ -453,6 +461,20 @@ impl AND2 {
         register.set_v_register(
             self.x,
             register.get_v_register(self.x) & register.get_v_register(self.y),
+        );
+        register.increment_program_counter();
+    }
+}
+
+impl XOR {
+    pub(super) fn new(x: u8, y: u8) -> XOR {
+        XOR { x, y }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        register.set_v_register(
+            self.x,
+            register.get_v_register(self.x) ^ register.get_v_register(self.y),
         );
         register.increment_program_counter();
     }
@@ -738,5 +760,21 @@ mod tests {
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
         assert_eq!(register.get_v_register(0x4), 0b00000101);
+    }
+
+    #[test]
+    fn test_xor() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x7, 0b01010101);
+        register.set_v_register(0x4, 0b10100101);
+        let instruction = XOR::new(0x4, 0x7);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_v_register(0x4), 0b11110000);
     }
 }
