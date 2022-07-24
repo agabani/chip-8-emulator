@@ -1,4 +1,4 @@
-use super::{display::Display, keypad::Keypad, memory::Memory, register::Register};
+use super::{display::Display, keypad::Keypad, memory::Memory, register::Register, timer::Timer};
 
 #[derive(Debug, PartialEq)]
 pub(super) enum Operation {
@@ -55,7 +55,7 @@ pub(super) enum Operation {
     /// EXA1
     SKNP(SKNP),
     /// FX07
-    SetCurrentDelayTimerValueToRegister { x: u8 },
+    LDDT(LDDT),
     /// FX0A
     GetKey { x: u8 },
     /// FX15
@@ -351,6 +351,16 @@ pub(super) struct SKNP {
     x: u8,
 }
 
+/// Fx07 - LD Vx, DT
+///
+/// Set Vx = delay timer value.
+///
+/// The value of DT is placed into Vx.
+#[derive(Debug, PartialEq)]
+pub(super) struct LDDT {
+    x: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -390,9 +400,7 @@ impl Operation {
             )),
             [0xE, n2, 0x9, 0xE] => Operation::SKP(SKP::new(nibble::to_n(n2))),
             [0xE, n2, 0xA, 0x1] => Operation::SKNP(SKNP::new(nibble::to_n(n2))),
-            [0xF, n2, 0x0, 0x7] => Operation::SetCurrentDelayTimerValueToRegister {
-                x: nibble::to_n(n2),
-            },
+            [0xF, n2, 0x0, 0x7] => Operation::LDDT(LDDT::new(nibble::to_n(n2))),
             [0xF, n2, 0x0, 0xA] => Operation::GetKey {
                 x: nibble::to_n(n2),
             },
@@ -835,6 +843,17 @@ impl SKNP {
             register.increment_program_counter();
         }
 
+        register.increment_program_counter();
+    }
+}
+
+impl LDDT {
+    pub(super) fn new(x: u8) -> LDDT {
+        LDDT { x }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register, delay_timer: &Timer) {
+        register.set_v_register(self.x, delay_timer.get());
         register.increment_program_counter();
     }
 }
@@ -1474,5 +1493,22 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x204);
+    }
+
+    #[test]
+    fn test_lddt() {
+        // Arrange
+        let mut register = Register::new();
+        let mut delay_timer = Timer::new();
+        delay_timer.set(0x2);
+
+        let instruction = LDDT::new(0x4);
+
+        // Act
+        instruction.execute(&mut register, &delay_timer);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_v_register(0x4), 0x2);
     }
 }

@@ -51,9 +51,7 @@ impl Cpu {
             Operation::DRW(o) => o.execute(register, display, memory),
             Operation::SKP(o) => o.execute(register, keypad),
             Operation::SKNP(o) => o.execute(register, keypad),
-            Operation::SetCurrentDelayTimerValueToRegister { x } => {
-                self.execute_self_current_delay_timer_value_to_register(x, delay_timer, register)
-            }
+            Operation::LDDT(o) => o.execute(register, delay_timer),
             Operation::GetKey { x } => self.execute_get_key(x, keypad, register),
             Operation::SetDelayTimer { x } => {
                 self.execute_set_delay_timer(x, delay_timer, register)
@@ -69,16 +67,6 @@ impl Cpu {
             Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_self_current_delay_timer_value_to_register(
-        &mut self,
-        x: u8,
-        delay_timer: &Timer,
-        register: &mut Register,
-    ) {
-        register.set_v_register(x, delay_timer.get());
-        register.increment_program_counter();
     }
 
     fn execute_get_key(&mut self, x: u8, keypad: &Keypad, register: &mut Register) {
