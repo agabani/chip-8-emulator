@@ -71,7 +71,7 @@ pub(super) enum Operation {
     /// FX55
     LDIV(LDIV),
     /// FX65
-    LoadMemory { x: u8 },
+    LDVI(LDVI),
 }
 
 /// 00E0 - CLS
@@ -431,6 +431,16 @@ pub(super) struct LDIV {
     x: u8,
 }
 
+/// Fx65 - LD Vx, [I]
+///
+/// Read registers V0 through Vx from memory starting at location I.
+///
+/// The interpreter reads values from memory starting at location I into registers V0 through Vx.
+#[derive(Debug, PartialEq)]
+pub(super) struct LDVI {
+    x: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -478,9 +488,7 @@ impl Operation {
             [0xF, n2, 0x2, 0x9] => Operation::LDF(LDF::new(nibble::to_n(n2))),
             [0xF, n2, 0x3, 0x3] => Operation::LDB(LDB::new(nibble::to_n(n2))),
             [0xF, n2, 0x5, 0x5] => Operation::LDIV(LDIV::new(nibble::to_n(n2))),
-            [0xF, n2, 0x6, 0x5] => Operation::LoadMemory {
-                x: nibble::to_n(n2),
-            },
+            [0xF, n2, 0x6, 0x5] => Operation::LDVI(LDVI::new(nibble::to_n(n2))),
             [n1, n2, n3, n4] => todo!("{:1X} {:1X} {:1X} {:1X}", n1, n2, n3, n4),
         }
     }
@@ -998,11 +1006,25 @@ impl LDIV {
     }
 
     pub(super) fn execute(&self, register: &mut Register, memory: &mut Memory) {
-        for i in 0..=self.x {
+        for x in 0..=self.x {
             memory.set_byte(
-                register.get_index_register() + u16::from(i),
-                register.get_v_register(i),
+                register.get_index_register() + u16::from(x),
+                register.get_v_register(x),
             );
+        }
+        register.increment_program_counter();
+    }
+}
+
+impl LDVI {
+    pub(super) fn new(x: u8) -> LDVI {
+        LDVI { x }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register, memory: &mut Memory) {
+        for x in 0..=self.x {
+            let byte = memory.get_byte(register.get_index_register() + u16::from(x));
+            register.set_v_register(x, byte);
         }
         register.increment_program_counter();
     }
@@ -1837,5 +1859,52 @@ mod tests {
         assert_eq!(memory.get_byte(0x400 + 0xD), 0xB);
         assert_eq!(memory.get_byte(0x400 + 0xE), 0xD);
         assert_eq!(memory.get_byte(0x400 + 0xF), 0xF);
+    }
+
+    #[test]
+    fn test_ldvi() {
+        // Arrange
+        let mut register = Register::new();
+        let mut memory = Memory::new();
+        let instruction = LDVI::new(0xF);
+        register.set_index_register(0x400);
+        memory.set_byte(0x400 + 0x0, 0x2);
+        memory.set_byte(0x400 + 0x1, 0x4);
+        memory.set_byte(0x400 + 0x2, 0x6);
+        memory.set_byte(0x400 + 0x3, 0x8);
+        memory.set_byte(0x400 + 0x4, 0xA);
+        memory.set_byte(0x400 + 0x5, 0xC);
+        memory.set_byte(0x400 + 0x6, 0xE);
+        memory.set_byte(0x400 + 0x7, 0x0);
+        memory.set_byte(0x400 + 0x8, 0x1);
+        memory.set_byte(0x400 + 0x9, 0x3);
+        memory.set_byte(0x400 + 0xA, 0x5);
+        memory.set_byte(0x400 + 0xB, 0x7);
+        memory.set_byte(0x400 + 0xC, 0x9);
+        memory.set_byte(0x400 + 0xD, 0xB);
+        memory.set_byte(0x400 + 0xE, 0xD);
+        memory.set_byte(0x400 + 0xF, 0xF);
+
+        // Act
+        instruction.execute(&mut register, &mut memory);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_v_register(0x0), 0x2);
+        assert_eq!(register.get_v_register(0x1), 0x4);
+        assert_eq!(register.get_v_register(0x2), 0x6);
+        assert_eq!(register.get_v_register(0x3), 0x8);
+        assert_eq!(register.get_v_register(0x4), 0xA);
+        assert_eq!(register.get_v_register(0x5), 0xC);
+        assert_eq!(register.get_v_register(0x6), 0xE);
+        assert_eq!(register.get_v_register(0x7), 0x0);
+        assert_eq!(register.get_v_register(0x8), 0x1);
+        assert_eq!(register.get_v_register(0x9), 0x3);
+        assert_eq!(register.get_v_register(0xA), 0x5);
+        assert_eq!(register.get_v_register(0xB), 0x7);
+        assert_eq!(register.get_v_register(0xC), 0x9);
+        assert_eq!(register.get_v_register(0xD), 0xB);
+        assert_eq!(register.get_v_register(0xE), 0xD);
+        assert_eq!(register.get_v_register(0xF), 0xF);
     }
 }

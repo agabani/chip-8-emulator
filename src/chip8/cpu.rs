@@ -59,15 +59,7 @@ impl Cpu {
             Operation::LDF(o) => o.execute(register),
             Operation::LDB(o) => o.execute(register, memory),
             Operation::LDIV(o) => o.execute(register, memory),
-            Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
+            Operation::LDVI(o) => o.execute(register, memory),
         }
-    }
-
-    fn execute_load_memory(&mut self, x: u8, memory: &Memory, register: &mut Register) {
-        for i in 0..=x {
-            let byte = memory.get_byte(register.get_index_register() + u16::from(i));
-            register.set_v_register(x, byte);
-        }
-        register.increment_program_counter();
     }
 }
