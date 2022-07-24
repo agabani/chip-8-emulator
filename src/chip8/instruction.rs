@@ -98,77 +98,119 @@ pub(super) struct SYS {
 
 impl Instruction {
     pub(super) fn parse(bytes: [u8; 2]) -> Instruction {
-        let nibbles = [
-            (bytes[0] & 0xF0) >> 4,
-            bytes[0] & 0x0F,
-            (bytes[1] & 0xF0) >> 4,
-            bytes[1] & 0x0F,
-        ];
+        let nibbles = nibble::from_bytes(bytes);
 
         match nibbles {
             [0x0, 0x0, 0xE, 0x0] => Instruction::CLS(CLS::new()),
             [0x0, 0x0, 0xE, 0xE] => Instruction::RET(RET::new()),
-            [0x0, n2, n3, n4] => Instruction::SYS(SYS::new(
-                (u16::from(n2) << 8) + (u16::from(n3) << 4) + (u16::from(n4)),
-            )),
+            [0x0, n2, n3, n4] => Instruction::SYS(SYS::new(nibble::to_nnn(n2, n3, n4))),
             [0x1, n2, n3, n4] => Instruction::Jump {
-                nnn: (u16::from(n2) << 8) + (u16::from(n3) << 4) + (u16::from(n4)),
+                nnn: nibble::to_nnn(n2, n3, n4),
             },
             [0x2, n2, n3, n4] => Instruction::Call {
-                nnn: (u16::from(n2) << 8) + (u16::from(n3) << 4) + (u16::from(n4)),
+                nnn: nibble::to_nnn(n2, n3, n4),
             },
             [0x3, n2, n3, n4] => Instruction::SkipIfEqual1 {
-                x: n2,
-                nn: (n3 << 4) + n4,
+                x: nibble::to_n(n2),
+                nn: nibble::to_nn(n3, n4),
             },
             [0x4, n2, n3, n4] => Instruction::SkipIfNotEqual1 {
-                x: n2,
-                nn: (n3 << 4) + n4,
+                x: nibble::to_n(n2),
+                nn: nibble::to_nn(n3, n4),
             },
             [0x5, n2, n3, 0x0] => Instruction::SkipIfEqual2 { x: n2, y: n3 },
             [0x6, n2, n3, n4] => Instruction::SetRegister {
-                x: n2,
-                nn: (n3 << 4) + n4,
+                x: nibble::to_n(n2),
+                nn: nibble::to_nn(n3, n4),
             },
             [0x7, n2, n3, n4] => Instruction::AddValueToRegister {
-                x: n2,
-                nn: (n3 << 4) + n4,
+                x: nibble::to_n(n2),
+                nn: nibble::to_nn(n3, n4),
             },
-            [0x8, n2, n3, 0x0] => Instruction::Set { x: n2, y: n3 },
-            [0x8, n2, n3, 0x1] => Instruction::BinaryOr { x: n2, y: n3 },
-            [0x8, n2, n3, 0x2] => Instruction::BinaryAnd { x: n2, y: n3 },
-            [0x8, n2, n3, 0x3] => Instruction::LogicalXor { x: n2, y: n3 },
-            [0x8, n2, n3, 0x4] => Instruction::Add { x: n2, y: n3 },
-            [0x8, n2, n3, 0x5] => Instruction::SubtractRightFromLeft { x: n2, y: n3 },
-            [0x8, n2, n3, 0x6] => Instruction::ShiftRight { x: n2, y: n3 },
-            [0x8, n2, n3, 0xE] => Instruction::ShiftLeft { x: n2, y: n3 },
-            [0x9, n2, n3, 0x0] => Instruction::SkipIfNotEqual2 { x: n2, y: n3 },
+            [0x8, n2, n3, 0x0] => Instruction::Set {
+                x: nibble::to_n(n2),
+                y: nibble::to_n(n3),
+            },
+            [0x8, n2, n3, 0x1] => Instruction::BinaryOr {
+                x: nibble::to_n(n2),
+                y: nibble::to_n(n3),
+            },
+            [0x8, n2, n3, 0x2] => Instruction::BinaryAnd {
+                x: nibble::to_n(n2),
+                y: nibble::to_n(n3),
+            },
+            [0x8, n2, n3, 0x3] => Instruction::LogicalXor {
+                x: nibble::to_n(n2),
+                y: nibble::to_n(n3),
+            },
+            [0x8, n2, n3, 0x4] => Instruction::Add {
+                x: nibble::to_n(n2),
+                y: nibble::to_n(n3),
+            },
+            [0x8, n2, n3, 0x5] => Instruction::SubtractRightFromLeft {
+                x: nibble::to_n(n2),
+                y: nibble::to_n(n3),
+            },
+            [0x8, n2, n3, 0x6] => Instruction::ShiftRight {
+                x: nibble::to_n(n2),
+                y: nibble::to_n(n3),
+            },
+            [0x8, n2, n3, 0xE] => Instruction::ShiftLeft {
+                x: nibble::to_n(n2),
+                y: nibble::to_n(n3),
+            },
+            [0x9, n2, n3, 0x0] => Instruction::SkipIfNotEqual2 {
+                x: nibble::to_n(n2),
+                y: nibble::to_n(n3),
+            },
             [0xA, n2, n3, n4] => Instruction::SetIndexRegister {
-                nnn: (u16::from(n2) << 8) + (u16::from(n3) << 4) + (u16::from(n4)),
+                nnn: nibble::to_nnn(n2, n3, n4),
             },
             [0xB, n2, n3, n4] => Instruction::JumpWithOffset {
-                nnn: (u16::from(n2) << 8) + (u16::from(n3) << 4) + (u16::from(n4)),
+                nnn: nibble::to_nnn(n2, n3, n4),
             },
             [0xC, n2, n3, n4] => Instruction::Random {
-                x: n2,
-                nn: (n3 << 4) + n4,
+                x: nibble::to_n(n2),
+                nn: nibble::to_nn(n3, n4),
             },
             [0xD, n2, n3, n4] => Instruction::DisplayDraw {
-                x: n2,
-                y: n3,
-                n: n4,
+                x: nibble::to_n(n2),
+                y: nibble::to_n(n3),
+                n: nibble::to_n(n4),
             },
-            [0xE, n2, 0x9, 0xE] => Instruction::SkipIfKeyPressed { x: n2 },
-            [0xE, n2, 0xA, 0x1] => Instruction::SkipIfKeyNotPressed { x: n2 },
-            [0xF, n2, 0x0, 0x7] => Instruction::SetCurrentDelayTimerValueToRegister { x: n2 },
-            [0xF, n2, 0x0, 0xA] => Instruction::GetKey { x: n2 },
-            [0xF, n2, 0x1, 0x5] => Instruction::SetDelayTimer { x: n2 },
-            [0xF, n2, 0x1, 0x8] => Instruction::SetSoundTimer { x: n2 },
-            [0xF, n2, 0x1, 0xE] => Instruction::AddToIndex { x: n2 },
-            [0xF, n2, 0x2, 0x9] => Instruction::LoadFont { x: n2 },
-            [0xF, n2, 0x3, 0x3] => Instruction::BinaryCodedDecimalConversion { x: n2 },
-            [0xF, n2, 0x5, 0x5] => Instruction::StoreMemory { x: n2 },
-            [0xF, n2, 0x6, 0x5] => Instruction::LoadMemory { x: n2 },
+            [0xE, n2, 0x9, 0xE] => Instruction::SkipIfKeyPressed {
+                x: nibble::to_n(n2),
+            },
+            [0xE, n2, 0xA, 0x1] => Instruction::SkipIfKeyNotPressed {
+                x: nibble::to_n(n2),
+            },
+            [0xF, n2, 0x0, 0x7] => Instruction::SetCurrentDelayTimerValueToRegister {
+                x: nibble::to_n(n2),
+            },
+            [0xF, n2, 0x0, 0xA] => Instruction::GetKey {
+                x: nibble::to_n(n2),
+            },
+            [0xF, n2, 0x1, 0x5] => Instruction::SetDelayTimer {
+                x: nibble::to_n(n2),
+            },
+            [0xF, n2, 0x1, 0x8] => Instruction::SetSoundTimer {
+                x: nibble::to_n(n2),
+            },
+            [0xF, n2, 0x1, 0xE] => Instruction::AddToIndex {
+                x: nibble::to_n(n2),
+            },
+            [0xF, n2, 0x2, 0x9] => Instruction::LoadFont {
+                x: nibble::to_n(n2),
+            },
+            [0xF, n2, 0x3, 0x3] => Instruction::BinaryCodedDecimalConversion {
+                x: nibble::to_n(n2),
+            },
+            [0xF, n2, 0x5, 0x5] => Instruction::StoreMemory {
+                x: nibble::to_n(n2),
+            },
+            [0xF, n2, 0x6, 0x5] => Instruction::LoadMemory {
+                x: nibble::to_n(n2),
+            },
             [n1, n2, n3, n4] => todo!("{:1X} {:1X} {:1X} {:1X}", n1, n2, n3, n4),
         }
     }
@@ -204,6 +246,29 @@ impl SYS {
 
     pub(super) fn execute(&self) {
         todo!()
+    }
+}
+
+mod nibble {
+    pub(super) fn from_bytes(bytes: [u8; 2]) -> [u8; 4] {
+        [
+            (bytes[0] & 0xF0) >> 4,
+            bytes[0] & 0x0F,
+            (bytes[1] & 0xF0) >> 4,
+            bytes[1] & 0x0F,
+        ]
+    }
+
+    pub(super) fn to_n(n: u8) -> u8 {
+        n
+    }
+
+    pub(super) fn to_nn(n3: u8, n4: u8) -> u8 {
+        (n3 << 4) + n4
+    }
+
+    pub(super) fn to_nnn(n2: u8, n3: u8, n4: u8) -> u16 {
+        (u16::from(n2) << 8) + (u16::from(n3) << 4) + (u16::from(n4))
     }
 }
 
