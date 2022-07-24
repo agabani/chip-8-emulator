@@ -7,7 +7,7 @@ pub(super) enum Instruction {
     /// 00EE
     RET(RET),
     /// 0NNN
-    SystemAddress { nnn: u16 },
+    SYS(SYS),
     /// 1NNN
     Jump { nnn: u16 },
     /// 2NNN
@@ -86,6 +86,16 @@ pub(super) struct CLS;
 #[derive(Debug, PartialEq)]
 pub(super) struct RET;
 
+/// 0nnn - SYS addr
+///
+/// Jump to a machine code routine at nnn.
+///
+/// This instruction is only used on the old computers on which Chip-8 was originally implemented. It is ignored by modern interpreters.
+#[derive(Debug, PartialEq)]
+pub(super) struct SYS {
+    nnn: u16,
+}
+
 impl Instruction {
     pub(super) fn parse(bytes: [u8; 2]) -> Instruction {
         let nibbles = [
@@ -98,9 +108,9 @@ impl Instruction {
         match nibbles {
             [0x0, 0x0, 0xE, 0x0] => Instruction::CLS(CLS::new()),
             [0x0, 0x0, 0xE, 0xE] => Instruction::RET(RET::new()),
-            [0x0, n2, n3, n4] => Instruction::SystemAddress {
-                nnn: (u16::from(n2) << 8) + (u16::from(n3) << 4) + (u16::from(n4)),
-            },
+            [0x0, n2, n3, n4] => Instruction::SYS(SYS::new(
+                (u16::from(n2) << 8) + (u16::from(n3) << 4) + (u16::from(n4)),
+            )),
             [0x1, n2, n3, n4] => Instruction::Jump {
                 nnn: (u16::from(n2) << 8) + (u16::from(n3) << 4) + (u16::from(n4)),
             },
@@ -187,6 +197,16 @@ impl RET {
     }
 }
 
+impl SYS {
+    pub(super) fn new(nnn: u16) -> SYS {
+        SYS { nnn }
+    }
+
+    pub(super) fn execute(&self) {
+        todo!()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -229,5 +249,15 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x402);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_sys() {
+        // Arrange
+        let instruction = SYS::new(000);
+
+        // Act
+        instruction.execute();
     }
 }

@@ -27,7 +27,7 @@ impl Cpu {
         match instruction {
             Instruction::CLS(i) => i.execute(register, display),
             Instruction::RET(i) => i.execute(register),
-            Instruction::SystemAddress { nnn } => self.execute_system_address(nnn, register),
+            Instruction::SYS(i) => i.execute(),
             Instruction::Jump { nnn } => self.execute_jump(nnn, register),
             Instruction::Call { nnn } => self.execute_call(nnn, register),
             Instruction::SkipIfEqual1 { x, nn } => self.execute_skip_if_equal_1(x, nn, register),
@@ -82,10 +82,6 @@ impl Cpu {
             Instruction::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Instruction::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_system_address(&self, _nnn: u16, register: &mut Register) {
-        register.increment_program_counter();
     }
 
     fn execute_jump(&mut self, nnn: u16, register: &mut Register) {
