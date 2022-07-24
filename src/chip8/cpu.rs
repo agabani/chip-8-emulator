@@ -36,8 +36,8 @@ impl Cpu {
             Operation::LD1(o) => o.execute(register),
             Operation::ADD(o) => o.execute(register),
             Operation::LD2(o) => o.execute(register),
+            Operation::OR(o) => o.execute(register),
             Operation::BinaryAnd { x, y } => self.execute_binary_add(x, y, register),
-            Operation::BinaryOr { x, y } => self.execute_binary_or(x, y, register),
             Operation::LogicalXor { x, y } => self.execute_logical_xor(x, y, register),
             Operation::Add { x, y } => self.execute_and(x, y, register),
             Operation::SubtractRightFromLeft { x, y } => {
@@ -80,11 +80,6 @@ impl Cpu {
 
     fn execute_binary_add(&mut self, x: u8, y: u8, register: &mut Register) {
         register.set_v_register(x, register.get_v_register(x) & register.get_v_register(y));
-        register.increment_program_counter();
-    }
-
-    fn execute_binary_or(&mut self, x: u8, y: u8, register: &mut Register) {
-        register.set_v_register(x, register.get_v_register(x) | register.get_v_register(y));
         register.increment_program_counter();
     }
 

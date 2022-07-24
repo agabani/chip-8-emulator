@@ -25,7 +25,7 @@ pub(super) enum Operation {
     /// 8XY0
     LD2(LD2),
     /// 8XY1
-    BinaryOr { x: u8, y: u8 },
+    OR(OR),
     /// 8XY2
     BinaryAnd { x: u8, y: u8 },
     /// 8XY3
@@ -182,6 +182,17 @@ pub(super) struct LD2 {
     y: u8,
 }
 
+/// 8xy1 - OR Vx, Vy
+///
+/// Set Vx = Vx OR Vy.
+///
+/// Performs a bitwise OR on the values of Vx and Vy, then stores the result in Vx. A bitwise OR compares the corrseponding bits from two values, and if either bit is 1, then the same bit in the result is also 1. Otherwise, it is 0.
+#[derive(Debug, PartialEq)]
+pub(super) struct OR {
+    x: u8,
+    y: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -200,10 +211,7 @@ impl Operation {
             [0x6, n2, n3, n4] => Operation::LD1(LD1::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
             [0x7, n2, n3, n4] => Operation::ADD(ADD::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
             [0x8, n2, n3, 0x0] => Operation::LD2(LD2::new(nibble::to_n(n2), nibble::to_n(n3))),
-            [0x8, n2, n3, 0x1] => Operation::BinaryOr {
-                x: nibble::to_n(n2),
-                y: nibble::to_n(n3),
-            },
+            [0x8, n2, n3, 0x1] => Operation::OR(OR::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0x2] => Operation::BinaryAnd {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
@@ -408,6 +416,20 @@ impl LD2 {
 
     pub(super) fn execute(&self, register: &mut Register) {
         register.set_v_register(self.x, register.get_v_register(self.y));
+        register.increment_program_counter();
+    }
+}
+
+impl OR {
+    pub(super) fn new(x: u8, y: u8) -> OR {
+        OR { x, y }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        register.set_v_register(
+            self.x,
+            register.get_v_register(self.x) | register.get_v_register(self.y),
+        );
         register.increment_program_counter();
     }
 }
@@ -660,5 +682,21 @@ mod tests {
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
         assert_eq!(register.get_v_register(0x4), 0x2);
+    }
+
+    #[test]
+    fn test_or() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x7, 0b01010000);
+        register.set_v_register(0x4, 0b10100000);
+        let instruction = OR::new(0x4, 0x7);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_v_register(0x4), 0b11110000);
     }
 }
