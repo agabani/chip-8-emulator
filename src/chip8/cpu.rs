@@ -41,7 +41,7 @@ impl Cpu {
             Operation::XOR(o) => o.execute(register),
             Operation::ADD2(o) => o.execute(register),
             Operation::SUB(o) => o.execute(register),
-            Operation::ShiftRight { x, y } => self.execute_shift_right(x, y, register),
+            Operation::SHR(o) => o.execute(register),
             Operation::ShiftLeft { x, y } => self.execute_shift_left(x, y, register),
             Operation::SkipIfNotEqual2 { x, y } => self.execute_skip_if_not_equal_2(x, y, register),
             Operation::SetIndexRegister { nnn } => self.execute_set_index_register(nnn, register),
@@ -74,21 +74,6 @@ impl Cpu {
             Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_shift_right(&mut self, x: u8, y: u8, register: &mut Register) {
-        // (Optional, or configurable) Set VX to the value of VY
-        register.set_v_register(x, register.get_v_register(y));
-        // Shift the value of VX one bit to the right
-        let (nn, overflow) = register.get_v_register(x).overflowing_shr(1);
-        register.set_v_register(x, nn);
-        // Set VF to 1 if the bit that was shifted out was 1, or 0 if it was 0
-        if overflow {
-            register.set_v_register(0xF, 1);
-        } else {
-            register.set_v_register(0xF, 0);
-        }
-        register.increment_program_counter();
     }
 
     fn execute_shift_left(&mut self, x: u8, y: u8, register: &mut Register) {
