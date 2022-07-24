@@ -50,9 +50,7 @@ impl Cpu {
             Operation::RND(o) => o.execute(register),
             Operation::DRW(o) => o.execute(register, display, memory),
             Operation::SKP(o) => o.execute(register, keypad),
-            Operation::SkipIfKeyNotPressed { x } => {
-                self.execute_skip_if_key_not_pressed(x, keypad, register)
-            }
+            Operation::SKNP(o) => o.execute(register, keypad),
             Operation::SetCurrentDelayTimerValueToRegister { x } => {
                 self.execute_self_current_delay_timer_value_to_register(x, delay_timer, register)
             }
@@ -71,14 +69,6 @@ impl Cpu {
             Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_skip_if_key_not_pressed(&mut self, x: u8, keypad: &Keypad, register: &mut Register) {
-        match keypad.read() {
-            Some(key) if key == register.get_v_register(x) => {}
-            _ => register.increment_program_counter(),
-        }
-        register.increment_program_counter();
     }
 
     fn execute_self_current_delay_timer_value_to_register(

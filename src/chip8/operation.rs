@@ -53,7 +53,7 @@ pub(super) enum Operation {
     /// EX9E
     SKP(SKP),
     /// EXA1
-    SkipIfKeyNotPressed { x: u8 },
+    SKNP(SKNP),
     /// FX07
     SetCurrentDelayTimerValueToRegister { x: u8 },
     /// FX0A
@@ -341,6 +341,16 @@ pub(super) struct SKP {
     x: u8,
 }
 
+/// ExA1 - SKNP Vx
+///
+/// Skip next instruction if key with the value of Vx is not pressed.
+///
+/// Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
+#[derive(Debug, PartialEq)]
+pub(super) struct SKNP {
+    x: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -379,9 +389,7 @@ impl Operation {
                 nibble::to_n(n4),
             )),
             [0xE, n2, 0x9, 0xE] => Operation::SKP(SKP::new(nibble::to_n(n2))),
-            [0xE, n2, 0xA, 0x1] => Operation::SkipIfKeyNotPressed {
-                x: nibble::to_n(n2),
-            },
+            [0xE, n2, 0xA, 0x1] => Operation::SKNP(SKNP::new(nibble::to_n(n2))),
             [0xF, n2, 0x0, 0x7] => Operation::SetCurrentDelayTimerValueToRegister {
                 x: nibble::to_n(n2),
             },
@@ -807,6 +815,24 @@ impl SKP {
             if key == register.get_v_register(self.x) {
                 register.increment_program_counter()
             }
+        }
+
+        register.increment_program_counter();
+    }
+}
+
+impl SKNP {
+    pub(super) fn new(x: u8) -> SKNP {
+        SKNP { x }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register, keypad: &Keypad) {
+        if let Some(key) = keypad.read() {
+            if key != register.get_v_register(self.x) {
+                register.increment_program_counter()
+            }
+        } else {
+            register.increment_program_counter();
         }
 
         register.increment_program_counter();
@@ -1398,5 +1424,55 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
+    }
+
+    #[test]
+    fn test_sknp_equal() {
+        // Arrange
+        let mut register = Register::new();
+        let mut keypad = Keypad::new();
+        register.set_v_register(0x4, 0x2);
+        keypad.pressed(crate::chip8::keypad::Key::Key2);
+
+        let instruction = SKNP::new(0x4);
+
+        // Act
+        instruction.execute(&mut register, &keypad);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+    }
+
+    #[test]
+    fn test_sknp_not_equal() {
+        // Arrange
+        let mut register = Register::new();
+        let mut keypad = Keypad::new();
+        register.set_v_register(0x4, 0x7);
+        keypad.pressed(crate::chip8::keypad::Key::Key2);
+
+        let instruction = SKNP::new(0x4);
+
+        // Act
+        instruction.execute(&mut register, &keypad);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x204);
+    }
+
+    #[test]
+    fn test_sknp_unpressed() {
+        // Arrange
+        let mut register = Register::new();
+        let keypad = Keypad::new();
+        register.set_v_register(0x4, 0x7);
+
+        let instruction = SKNP::new(0x4);
+
+        // Act
+        instruction.execute(&mut register, &keypad);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x204);
     }
 }
