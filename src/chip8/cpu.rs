@@ -58,19 +58,9 @@ impl Cpu {
             Operation::ADDI(o) => o.execute(register),
             Operation::LDF(o) => o.execute(register),
             Operation::LDB(o) => o.execute(register, memory),
-            Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
+            Operation::LDIV(o) => o.execute(register, memory),
             Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_store_memory(&mut self, x: u8, memory: &mut Memory, register: &mut Register) {
-        for i in 0..=x {
-            memory.set_byte(
-                register.get_index_register() + u16::from(i),
-                register.get_v_register(i),
-            );
-        }
-        register.increment_program_counter();
     }
 
     fn execute_load_memory(&mut self, x: u8, memory: &Memory, register: &mut Register) {

@@ -69,7 +69,7 @@ pub(super) enum Operation {
     /// FX33
     LDB(LDB),
     /// FX55
-    StoreMemory { x: u8 },
+    LDIV(LDIV),
     /// FX65
     LoadMemory { x: u8 },
 }
@@ -421,6 +421,16 @@ pub(super) struct LDB {
     x: u8,
 }
 
+/// Fx55 - LD [I], Vx
+///
+/// Store registers V0 through Vx in memory starting at location I.
+///
+/// The interpreter copies the values of registers V0 through Vx into memory, starting at the address in I.
+#[derive(Debug, PartialEq)]
+pub(super) struct LDIV {
+    x: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -467,9 +477,7 @@ impl Operation {
             [0xF, n2, 0x1, 0xE] => Operation::ADDI(ADDI::new(nibble::to_n(n2))),
             [0xF, n2, 0x2, 0x9] => Operation::LDF(LDF::new(nibble::to_n(n2))),
             [0xF, n2, 0x3, 0x3] => Operation::LDB(LDB::new(nibble::to_n(n2))),
-            [0xF, n2, 0x5, 0x5] => Operation::StoreMemory {
-                x: nibble::to_n(n2),
-            },
+            [0xF, n2, 0x5, 0x5] => Operation::LDIV(LDIV::new(nibble::to_n(n2))),
             [0xF, n2, 0x6, 0x5] => Operation::LoadMemory {
                 x: nibble::to_n(n2),
             },
@@ -978,6 +986,22 @@ impl LDB {
             memory.set_byte(
                 register.get_index_register() + i as u16,
                 c.to_digit(10).unwrap() as u8,
+            );
+        }
+        register.increment_program_counter();
+    }
+}
+
+impl LDIV {
+    pub(super) fn new(x: u8) -> LDIV {
+        LDIV { x }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register, memory: &mut Memory) {
+        for i in 0..=self.x {
+            memory.set_byte(
+                register.get_index_register() + u16::from(i),
+                register.get_v_register(i),
             );
         }
         register.increment_program_counter();
@@ -1766,5 +1790,52 @@ mod tests {
         assert_eq!(memory.get_byte(0x400 + 0x0), 0x2);
         assert_eq!(memory.get_byte(0x400 + 0x1), 0x4);
         assert_eq!(memory.get_byte(0x400 + 0x2), 0x6);
+    }
+
+    #[test]
+    fn test_ldiv() {
+        // Arrange
+        let mut register = Register::new();
+        let mut memory = Memory::new();
+        let instruction = LDIV::new(0xF);
+        register.set_index_register(0x400);
+        register.set_v_register(0x0, 0x2);
+        register.set_v_register(0x1, 0x4);
+        register.set_v_register(0x2, 0x6);
+        register.set_v_register(0x3, 0x8);
+        register.set_v_register(0x4, 0xA);
+        register.set_v_register(0x5, 0xC);
+        register.set_v_register(0x6, 0xE);
+        register.set_v_register(0x7, 0x0);
+        register.set_v_register(0x8, 0x1);
+        register.set_v_register(0x9, 0x3);
+        register.set_v_register(0xA, 0x5);
+        register.set_v_register(0xB, 0x7);
+        register.set_v_register(0xC, 0x9);
+        register.set_v_register(0xD, 0xB);
+        register.set_v_register(0xE, 0xD);
+        register.set_v_register(0xF, 0xF);
+
+        // Act
+        instruction.execute(&mut register, &mut memory);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(memory.get_byte(0x400 + 0x0), 0x2);
+        assert_eq!(memory.get_byte(0x400 + 0x1), 0x4);
+        assert_eq!(memory.get_byte(0x400 + 0x2), 0x6);
+        assert_eq!(memory.get_byte(0x400 + 0x3), 0x8);
+        assert_eq!(memory.get_byte(0x400 + 0x4), 0xA);
+        assert_eq!(memory.get_byte(0x400 + 0x5), 0xC);
+        assert_eq!(memory.get_byte(0x400 + 0x6), 0xE);
+        assert_eq!(memory.get_byte(0x400 + 0x7), 0x0);
+        assert_eq!(memory.get_byte(0x400 + 0x8), 0x1);
+        assert_eq!(memory.get_byte(0x400 + 0x9), 0x3);
+        assert_eq!(memory.get_byte(0x400 + 0xA), 0x5);
+        assert_eq!(memory.get_byte(0x400 + 0xB), 0x7);
+        assert_eq!(memory.get_byte(0x400 + 0xC), 0x9);
+        assert_eq!(memory.get_byte(0x400 + 0xD), 0xB);
+        assert_eq!(memory.get_byte(0x400 + 0xE), 0xD);
+        assert_eq!(memory.get_byte(0x400 + 0xF), 0xF);
     }
 }
