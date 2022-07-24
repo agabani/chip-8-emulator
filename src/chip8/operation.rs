@@ -57,7 +57,7 @@ pub(super) enum Operation {
     /// FX07
     LDDT(LDDT),
     /// FX0A
-    GetKey { x: u8 },
+    LDK(LDK),
     /// FX15
     SetDelayTimer { x: u8 },
     /// FX18
@@ -361,6 +361,16 @@ pub(super) struct LDDT {
     x: u8,
 }
 
+/// Fx0A - LD Vx, K
+///
+/// Wait for a key press, store the value of the key in Vx.
+///
+/// All execution stops until a key is pressed, then the value of that key is stored in Vx.
+#[derive(Debug, PartialEq)]
+pub(super) struct LDK {
+    x: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -401,9 +411,7 @@ impl Operation {
             [0xE, n2, 0x9, 0xE] => Operation::SKP(SKP::new(nibble::to_n(n2))),
             [0xE, n2, 0xA, 0x1] => Operation::SKNP(SKNP::new(nibble::to_n(n2))),
             [0xF, n2, 0x0, 0x7] => Operation::LDDT(LDDT::new(nibble::to_n(n2))),
-            [0xF, n2, 0x0, 0xA] => Operation::GetKey {
-                x: nibble::to_n(n2),
-            },
+            [0xF, n2, 0x0, 0xA] => Operation::LDK(LDK::new(nibble::to_n(n2))),
             [0xF, n2, 0x1, 0x5] => Operation::SetDelayTimer {
                 x: nibble::to_n(n2),
             },
@@ -855,6 +863,19 @@ impl LDDT {
     pub(super) fn execute(&self, register: &mut Register, delay_timer: &Timer) {
         register.set_v_register(self.x, delay_timer.get());
         register.increment_program_counter();
+    }
+}
+
+impl LDK {
+    pub(super) fn new(x: u8) -> LDK {
+        LDK { x }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register, keypad: &Keypad) {
+        if let Some(n) = keypad.read() {
+            register.set_v_register(self.x, n);
+            register.increment_program_counter();
+        }
     }
 }
 
@@ -1510,5 +1531,39 @@ mod tests {
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
         assert_eq!(register.get_v_register(0x4), 0x2);
+    }
+
+    #[test]
+    fn test_ldk_pressed() {
+        // Arrange
+        let mut register = Register::new();
+        let mut keypad = Keypad::new();
+        keypad.pressed(crate::chip8::keypad::Key::Key2);
+
+        let instruction = LDK::new(0x4);
+
+        // Act
+        instruction.execute(&mut register, &keypad);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_v_register(0x4), 0x2);
+    }
+
+    #[test]
+    fn test_ldk_unpressed() {
+        // Arrange
+        let mut register = Register::new();
+        let keypad = Keypad::new();
+        register.set_v_register(0x4, 0x7);
+
+        let instruction = LDK::new(0x4);
+
+        // Act
+        instruction.execute(&mut register, &keypad);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x200);
+        assert_eq!(register.get_v_register(0x4), 0x7);
     }
 }

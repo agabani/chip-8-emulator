@@ -52,7 +52,7 @@ impl Cpu {
             Operation::SKP(o) => o.execute(register, keypad),
             Operation::SKNP(o) => o.execute(register, keypad),
             Operation::LDDT(o) => o.execute(register, delay_timer),
-            Operation::GetKey { x } => self.execute_get_key(x, keypad, register),
+            Operation::LDK(o) => o.execute(register, keypad),
             Operation::SetDelayTimer { x } => {
                 self.execute_set_delay_timer(x, delay_timer, register)
             }
@@ -66,13 +66,6 @@ impl Cpu {
             }
             Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
-        }
-    }
-
-    fn execute_get_key(&mut self, x: u8, keypad: &Keypad, register: &mut Register) {
-        if let Some(n) = keypad.read() {
-            register.set_v_register(x, n);
-            register.increment_program_counter();
         }
     }
 
