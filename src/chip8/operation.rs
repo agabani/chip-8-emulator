@@ -525,7 +525,7 @@ impl SE1 {
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
-        if register.get_v_register(self.x) == self.nn {
+        if register.get_v(self.x) == self.nn {
             register.increment_program_counter();
         }
         register.increment_program_counter();
@@ -538,7 +538,7 @@ impl SNE1 {
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
-        if register.get_v_register(self.x) != self.nn {
+        if register.get_v(self.x) != self.nn {
             register.increment_program_counter();
         }
         register.increment_program_counter();
@@ -551,7 +551,7 @@ impl SE2 {
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
-        if register.get_v_register(self.x) == register.get_v_register(self.y) {
+        if register.get_v(self.x) == register.get_v(self.y) {
             register.increment_program_counter();
         }
         register.increment_program_counter();
@@ -564,7 +564,7 @@ impl LD1 {
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
-        register.set_v_register(self.x, self.nn);
+        register.set_v(self.x, self.nn);
         register.increment_program_counter();
     }
 }
@@ -575,8 +575,8 @@ impl ADD1 {
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
-        let (nn, _) = register.get_v_register(self.x).overflowing_add(self.nn);
-        register.set_v_register(self.x, nn);
+        let (nn, _) = register.get_v(self.x).overflowing_add(self.nn);
+        register.set_v(self.x, nn);
         register.increment_program_counter();
     }
 }
@@ -587,7 +587,7 @@ impl LD2 {
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
-        register.set_v_register(self.x, register.get_v_register(self.y));
+        register.set_v(self.x, register.get_v(self.y));
         register.increment_program_counter();
     }
 }
@@ -598,10 +598,7 @@ impl OR {
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
-        register.set_v_register(
-            self.x,
-            register.get_v_register(self.x) | register.get_v_register(self.y),
-        );
+        register.set_v(self.x, register.get_v(self.x) | register.get_v(self.y));
         register.increment_program_counter();
     }
 }
@@ -612,10 +609,7 @@ impl AND2 {
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
-        register.set_v_register(
-            self.x,
-            register.get_v_register(self.x) & register.get_v_register(self.y),
-        );
+        register.set_v(self.x, register.get_v(self.x) & register.get_v(self.y));
         register.increment_program_counter();
     }
 }
@@ -626,10 +620,7 @@ impl XOR {
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
-        register.set_v_register(
-            self.x,
-            register.get_v_register(self.x) ^ register.get_v_register(self.y),
-        );
+        register.set_v(self.x, register.get_v(self.x) ^ register.get_v(self.y));
         register.increment_program_counter();
     }
 }
@@ -641,16 +632,16 @@ impl ADD2 {
 
     pub(super) fn execute(&self, register: &mut Register) {
         let (nn, overflow) = register
-            .get_v_register(self.x)
-            .overflowing_add(register.get_v_register(self.y));
+            .get_v(self.x)
+            .overflowing_add(register.get_v(self.y));
 
         if overflow {
-            register.set_v_register(0xF, 0x1);
+            register.set_v(0xF, 0x1);
         } else {
-            register.set_v_register(0xF, 0x0);
+            register.set_v(0xF, 0x0);
         }
 
-        register.set_v_register(self.x, nn);
+        register.set_v(self.x, nn);
         register.increment_program_counter();
     }
 }
@@ -662,16 +653,16 @@ impl SUB {
 
     pub(super) fn execute(&self, register: &mut Register) {
         let (nn, overflow) = register
-            .get_v_register(self.x)
-            .overflowing_sub(register.get_v_register(self.y));
+            .get_v(self.x)
+            .overflowing_sub(register.get_v(self.y));
 
         if overflow {
-            register.set_v_register(0xF, 0x0);
+            register.set_v(0xF, 0x0);
         } else {
-            register.set_v_register(0xF, 0x1);
+            register.set_v(0xF, 0x1);
         }
 
-        register.set_v_register(self.x, nn);
+        register.set_v(self.x, nn);
         register.increment_program_counter();
     }
 }
@@ -684,16 +675,16 @@ impl SHR {
     pub(super) fn execute(&self, register: &mut Register) {
         // TODO: optional Vx = Vy
 
-        let vx = register.get_v_register(self.x);
+        let vx = register.get_v(self.x);
 
         if vx & 0b0000_0001 == 0b0000_0001 {
-            register.set_v_register(0xF, 0x1);
+            register.set_v(0xF, 0x1);
         } else {
-            register.set_v_register(0xF, 0x0);
+            register.set_v(0xF, 0x0);
         }
 
         let (nn, _) = vx.overflowing_shr(0x1);
-        register.set_v_register(self.x, nn);
+        register.set_v(self.x, nn);
         register.increment_program_counter();
     }
 }
@@ -705,16 +696,16 @@ impl SUBN {
 
     pub(super) fn execute(&self, register: &mut Register) {
         let (nn, overflow) = register
-            .get_v_register(self.y)
-            .overflowing_sub(register.get_v_register(self.x));
+            .get_v(self.y)
+            .overflowing_sub(register.get_v(self.x));
 
         if overflow {
-            register.set_v_register(0xF, 0x0);
+            register.set_v(0xF, 0x0);
         } else {
-            register.set_v_register(0xF, 0x1);
+            register.set_v(0xF, 0x1);
         }
 
-        register.set_v_register(self.x, nn);
+        register.set_v(self.x, nn);
         register.increment_program_counter();
     }
 }
@@ -727,16 +718,16 @@ impl SHL {
     pub(super) fn execute(&self, register: &mut Register) {
         // TODO: optional Vx = Vy
 
-        let vx = register.get_v_register(self.x);
+        let vx = register.get_v(self.x);
 
         if vx & 0b1000_0000 == 0b1000_0000 {
-            register.set_v_register(0xF, 0x1);
+            register.set_v(0xF, 0x1);
         } else {
-            register.set_v_register(0xF, 0x0);
+            register.set_v(0xF, 0x0);
         }
 
         let (nn, _) = vx.overflowing_shl(0x1);
-        register.set_v_register(self.x, nn);
+        register.set_v(self.x, nn);
         register.increment_program_counter();
     }
 }
@@ -747,7 +738,7 @@ impl SNE2 {
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
-        if register.get_v_register(self.x) != register.get_v_register(self.y) {
+        if register.get_v(self.x) != register.get_v(self.y) {
             register.increment_program_counter();
         }
         register.increment_program_counter();
@@ -760,7 +751,7 @@ impl LDI {
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
-        register.set_index_register(self.nnn);
+        register.set_i(self.nnn);
         register.increment_program_counter();
     }
 }
@@ -771,7 +762,7 @@ impl JPV0 {
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
-        register.set_program_counter(self.nnn + u16::from(register.get_v_register(0x0)));
+        register.set_program_counter(self.nnn + u16::from(register.get_v(0x0)));
     }
 }
 
@@ -781,7 +772,7 @@ impl RND {
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
-        register.set_v_register(self.x, rand::random::<u8>() & self.nn);
+        register.set_v(self.x, rand::random::<u8>() & self.nn);
         register.increment_program_counter();
     }
 }
@@ -799,17 +790,17 @@ impl DRW {
         memory: &mut Memory,
     ) {
         // Set the X coordinate to the value in VX modulo 64
-        let x = register.get_v_register(self.x) % 64;
+        let x = register.get_v(self.x) % 64;
         // Set the Y coordinate to the value in VY modulo 32
-        let y = register.get_v_register(self.y) % 32;
+        let y = register.get_v(self.y) % 32;
 
         // Set VF to 0
-        register.set_v_register(0xF, 0);
+        register.set_v(0xF, 0);
 
         // For N rows
         for row in 0..self.n {
             // Get the Nth byte of sprite data, counting from the memory address in the I register
-            let sprite_data = memory.get_byte(register.get_index_register() + u16::from(row));
+            let sprite_data = memory.get_byte(register.get_i() + u16::from(row));
 
             // For each of the 8 pixels/bits in this sprite row
             for pixel in 0..8 {
@@ -825,7 +816,7 @@ impl DRW {
                     // turn off the pixel
                     display.set_pixel(x + pixel, y + row, false);
                     // set VF to 1
-                    register.set_v_register(0xF, 1);
+                    register.set_v(0xF, 1);
                 }
                 // Or if the current pixel in the sprite row is on and the screen pixel is not
                 else if sprite_row_pixel && !display_pixel {
@@ -854,7 +845,7 @@ impl SKP {
     }
 
     pub(super) fn execute(&self, register: &mut Register, keypad: &Keypad) {
-        if keypad.is_pressed(register.get_v_register(self.x)) {
+        if keypad.is_pressed(register.get_v(self.x)) {
             register.increment_program_counter();
         }
         register.increment_program_counter();
@@ -867,7 +858,7 @@ impl SKNP {
     }
 
     pub(super) fn execute(&self, register: &mut Register, keypad: &Keypad) {
-        if !keypad.is_pressed(register.get_v_register(self.x)) {
+        if !keypad.is_pressed(register.get_v(self.x)) {
             register.increment_program_counter();
         }
         register.increment_program_counter();
@@ -880,7 +871,7 @@ impl LDVDT {
     }
 
     pub(super) fn execute(&self, register: &mut Register, delay_timer: &Timer) {
-        register.set_v_register(self.x, delay_timer.get());
+        register.set_v(self.x, delay_timer.get());
         register.increment_program_counter();
     }
 }
@@ -892,7 +883,7 @@ impl LDK {
 
     pub(super) fn execute(&self, register: &mut Register, keypad: &Keypad) {
         if let Some(n) = keypad.read() {
-            register.set_v_register(self.x, n);
+            register.set_v(self.x, n);
             register.increment_program_counter();
         }
     }
@@ -904,7 +895,7 @@ impl LDDTV {
     }
 
     pub(super) fn execute(&self, register: &mut Register, delay_timer: &mut Timer) {
-        delay_timer.set(register.get_v_register(self.x));
+        delay_timer.set(register.get_v(self.x));
         register.increment_program_counter();
     }
 }
@@ -915,7 +906,7 @@ impl LDST {
     }
 
     pub(super) fn execute(&self, register: &mut Register, sound_timer: &mut Timer) {
-        sound_timer.set(register.get_v_register(self.x));
+        sound_timer.set(register.get_v(self.x));
         register.increment_program_counter();
     }
 }
@@ -926,9 +917,7 @@ impl ADDI {
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
-        register.set_index_register(
-            register.get_index_register() + u16::from(register.get_v_register(self.x)),
-        );
+        register.set_i(register.get_i() + u16::from(register.get_v(self.x)));
         register.increment_program_counter();
     }
 }
@@ -939,7 +928,7 @@ impl LDF {
     }
 
     pub(super) fn execute(&self, register: &mut Register) {
-        register.set_index_register(0x050 + u16::from(register.get_v_register(self.x)) * 0x5);
+        register.set_i(0x050 + u16::from(register.get_v(self.x)) * 0x5);
         register.increment_program_counter();
     }
 }
@@ -952,13 +941,10 @@ impl LDB {
     #[allow(clippy::cast_possible_truncation)]
     pub(super) fn execute(&self, register: &mut Register, memory: &mut Memory) {
         // TODO: do not rely on string conversion
-        let string = format!("{:03}", register.get_v_register(self.x));
+        let string = format!("{:03}", register.get_v(self.x));
 
         for (i, c) in string.chars().enumerate() {
-            memory.set_byte(
-                register.get_index_register() + i as u16,
-                c.to_digit(10).unwrap() as u8,
-            );
+            memory.set_byte(register.get_i() + i as u16, c.to_digit(10).unwrap() as u8);
         }
         register.increment_program_counter();
     }
@@ -971,10 +957,7 @@ impl LDIV {
 
     pub(super) fn execute(&self, register: &mut Register, memory: &mut Memory) {
         for x in 0..=self.x {
-            memory.set_byte(
-                register.get_index_register() + u16::from(x),
-                register.get_v_register(x),
-            );
+            memory.set_byte(register.get_i() + u16::from(x), register.get_v(x));
         }
         register.increment_program_counter();
     }
@@ -987,8 +970,8 @@ impl LDVI {
 
     pub(super) fn execute(&self, register: &mut Register, memory: &mut Memory) {
         for x in 0..=self.x {
-            let byte = memory.get_byte(register.get_index_register() + u16::from(x));
-            register.set_v_register(x, byte);
+            let byte = memory.get_byte(register.get_i() + u16::from(x));
+            register.set_v(x, byte);
         }
         register.increment_program_counter();
     }
@@ -1102,7 +1085,7 @@ mod tests {
     fn test_se1_equal() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0x2);
+        register.set_v(0x4, 0x2);
         let instruction = SE1::new(0x4, 0x2);
 
         // Act
@@ -1116,7 +1099,7 @@ mod tests {
     fn test_se1_not_equal() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0x2);
+        register.set_v(0x4, 0x2);
         let instruction = SE1::new(0x4, 0x1);
 
         // Act
@@ -1130,7 +1113,7 @@ mod tests {
     fn test_sne1_equal() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0x2);
+        register.set_v(0x4, 0x2);
         let instruction = SNE1::new(0x4, 0x2);
 
         // Act
@@ -1144,7 +1127,7 @@ mod tests {
     fn test_sne1_not_equal() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0x2);
+        register.set_v(0x4, 0x2);
         let instruction = SNE1::new(0x4, 0x1);
 
         // Act
@@ -1158,8 +1141,8 @@ mod tests {
     fn test_se2_equal() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0x7);
-        register.set_v_register(0x2, 0x7);
+        register.set_v(0x4, 0x7);
+        register.set_v(0x2, 0x7);
         let instruction = SE2::new(0x4, 0x2);
 
         // Act
@@ -1173,8 +1156,8 @@ mod tests {
     fn test_se2_not_equal() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0x7);
-        register.set_v_register(0x2, 0x3);
+        register.set_v(0x4, 0x7);
+        register.set_v(0x2, 0x3);
         let instruction = SE2::new(0x4, 0x2);
 
         // Act
@@ -1195,7 +1178,7 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0x2);
+        assert_eq!(register.get_v(0x4), 0x2);
     }
 
     #[test]
@@ -1209,15 +1192,15 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0x2);
-        assert_eq!(register.get_v_register(0xF), 0x0);
+        assert_eq!(register.get_v(0x4), 0x2);
+        assert_eq!(register.get_v(0xF), 0x0);
     }
 
     #[test]
     fn test_add1_overflow() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0xFF);
+        register.set_v(0x4, 0xFF);
         let instruction = ADD1::new(0x4, 0x2);
 
         // Act
@@ -1225,15 +1208,15 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0x1);
-        assert_eq!(register.get_v_register(0xF), 0x0);
+        assert_eq!(register.get_v(0x4), 0x1);
+        assert_eq!(register.get_v(0xF), 0x0);
     }
 
     #[test]
     fn test_ld2() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x7, 0x2);
+        register.set_v(0x7, 0x2);
         let instruction = LD2::new(0x4, 0x7);
 
         // Act
@@ -1241,15 +1224,15 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0x2);
+        assert_eq!(register.get_v(0x4), 0x2);
     }
 
     #[test]
     fn test_or() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x7, 0b01010101);
-        register.set_v_register(0x4, 0b10100101);
+        register.set_v(0x7, 0b01010101);
+        register.set_v(0x4, 0b10100101);
         let instruction = OR::new(0x4, 0x7);
 
         // Act
@@ -1257,15 +1240,15 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0b11110101);
+        assert_eq!(register.get_v(0x4), 0b11110101);
     }
 
     #[test]
     fn test_and2() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x7, 0b01010101);
-        register.set_v_register(0x4, 0b10100101);
+        register.set_v(0x7, 0b01010101);
+        register.set_v(0x4, 0b10100101);
         let instruction = AND2::new(0x4, 0x7);
 
         // Act
@@ -1273,15 +1256,15 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0b00000101);
+        assert_eq!(register.get_v(0x4), 0b00000101);
     }
 
     #[test]
     fn test_xor() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x7, 0b01010101);
-        register.set_v_register(0x4, 0b10100101);
+        register.set_v(0x7, 0b01010101);
+        register.set_v(0x4, 0b10100101);
         let instruction = XOR::new(0x4, 0x7);
 
         // Act
@@ -1289,15 +1272,15 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0b11110000);
+        assert_eq!(register.get_v(0x4), 0b11110000);
     }
 
     #[test]
     fn test_add2() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0x7);
-        register.set_v_register(0x2, 0x3);
+        register.set_v(0x4, 0x7);
+        register.set_v(0x2, 0x3);
         let instruction = ADD2::new(0x4, 0x2);
 
         // Act
@@ -1305,16 +1288,16 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0x0A);
-        assert_eq!(register.get_v_register(0xF), 0x0);
+        assert_eq!(register.get_v(0x4), 0x0A);
+        assert_eq!(register.get_v(0xF), 0x0);
     }
 
     #[test]
     fn test_add2_overflow() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0xFF);
-        register.set_v_register(0x2, 0x02);
+        register.set_v(0x4, 0xFF);
+        register.set_v(0x2, 0x02);
         let instruction = ADD2::new(0x4, 0x2);
 
         // Act
@@ -1322,16 +1305,16 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0x1);
-        assert_eq!(register.get_v_register(0xF), 0x1);
+        assert_eq!(register.get_v(0x4), 0x1);
+        assert_eq!(register.get_v(0xF), 0x1);
     }
 
     #[test]
     fn test_sub() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0x7);
-        register.set_v_register(0x2, 0x3);
+        register.set_v(0x4, 0x7);
+        register.set_v(0x2, 0x3);
         let instruction = SUB::new(0x4, 0x2);
 
         // Act
@@ -1339,16 +1322,16 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0x04);
-        assert_eq!(register.get_v_register(0xF), 0x1);
+        assert_eq!(register.get_v(0x4), 0x04);
+        assert_eq!(register.get_v(0xF), 0x1);
     }
 
     #[test]
     fn test_sub_overflow() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0x0);
-        register.set_v_register(0x2, 0x2);
+        register.set_v(0x4, 0x0);
+        register.set_v(0x2, 0x2);
         let instruction = SUB::new(0x4, 0x2);
 
         // Act
@@ -1356,15 +1339,15 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0xFE);
-        assert_eq!(register.get_v_register(0xF), 0x0);
+        assert_eq!(register.get_v(0x4), 0xFE);
+        assert_eq!(register.get_v(0xF), 0x0);
     }
 
     #[test]
     fn test_shr_0() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0b1111_1010);
+        register.set_v(0x4, 0b1111_1010);
         let instruction = SHR::new(0x4, 0x2);
 
         // Act
@@ -1372,15 +1355,15 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0b0111_1101);
-        assert_eq!(register.get_v_register(0xF), 0x0);
+        assert_eq!(register.get_v(0x4), 0b0111_1101);
+        assert_eq!(register.get_v(0xF), 0x0);
     }
 
     #[test]
     fn test_shr_1() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0b1111_0101);
+        register.set_v(0x4, 0b1111_0101);
         let instruction = SHR::new(0x4, 0x2);
 
         // Act
@@ -1388,16 +1371,16 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0b0111_1010);
-        assert_eq!(register.get_v_register(0xF), 0x1);
+        assert_eq!(register.get_v(0x4), 0b0111_1010);
+        assert_eq!(register.get_v(0xF), 0x1);
     }
 
     #[test]
     fn test_subn() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0x3);
-        register.set_v_register(0x2, 0x7);
+        register.set_v(0x4, 0x3);
+        register.set_v(0x2, 0x7);
         let instruction = SUBN::new(0x4, 0x2);
 
         // Act
@@ -1405,16 +1388,16 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0x04);
-        assert_eq!(register.get_v_register(0xF), 0x1);
+        assert_eq!(register.get_v(0x4), 0x04);
+        assert_eq!(register.get_v(0xF), 0x1);
     }
 
     #[test]
     fn test_subn_overflow() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0x2);
-        register.set_v_register(0x2, 0x0);
+        register.set_v(0x4, 0x2);
+        register.set_v(0x2, 0x0);
         let instruction = SUBN::new(0x4, 0x2);
 
         // Act
@@ -1422,15 +1405,15 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0xFE);
-        assert_eq!(register.get_v_register(0xF), 0x0);
+        assert_eq!(register.get_v(0x4), 0xFE);
+        assert_eq!(register.get_v(0xF), 0x0);
     }
 
     #[test]
     fn test_shl_0() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0b0101_1111);
+        register.set_v(0x4, 0b0101_1111);
         let instruction = SHL::new(0x4, 0x2);
 
         // Act
@@ -1438,15 +1421,15 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0b1011_1110);
-        assert_eq!(register.get_v_register(0xF), 0x0);
+        assert_eq!(register.get_v(0x4), 0b1011_1110);
+        assert_eq!(register.get_v(0xF), 0x0);
     }
 
     #[test]
     fn test_shl_1() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0b1010_1111);
+        register.set_v(0x4, 0b1010_1111);
         let instruction = SHL::new(0x4, 0x2);
 
         // Act
@@ -1454,16 +1437,16 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0b0101_1110);
-        assert_eq!(register.get_v_register(0xF), 0x1);
+        assert_eq!(register.get_v(0x4), 0b0101_1110);
+        assert_eq!(register.get_v(0xF), 0x1);
     }
 
     #[test]
     fn test_sne2_equal() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0x7);
-        register.set_v_register(0x2, 0x7);
+        register.set_v(0x4, 0x7);
+        register.set_v(0x2, 0x7);
         let instruction = SNE2::new(0x4, 0x2);
 
         // Act
@@ -1477,8 +1460,8 @@ mod tests {
     fn test_sne2_not_equal() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0x7);
-        register.set_v_register(0x2, 0x3);
+        register.set_v(0x4, 0x7);
+        register.set_v(0x2, 0x3);
         let instruction = SNE2::new(0x4, 0x2);
 
         // Act
@@ -1499,14 +1482,14 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_index_register(), 0x123);
+        assert_eq!(register.get_i(), 0x123);
     }
 
     #[test]
     fn test_jpv0() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x0, 0x20);
+        register.set_v(0x0, 0x20);
         let instruction = JPV0::new(0x400);
 
         // Act
@@ -1520,7 +1503,7 @@ mod tests {
     fn test_rnd() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0xFF);
+        register.set_v(0x4, 0xFF);
         let instruction = RND::new(0x4, 0x42);
 
         // Act
@@ -1528,7 +1511,7 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_ne!(register.get_v_register(0x4), 0xFF);
+        assert_ne!(register.get_v(0x4), 0xFF);
     }
 
     #[test]
@@ -1536,7 +1519,7 @@ mod tests {
         // Arrange
         let mut register = Register::new();
         let mut keypad = Keypad::new();
-        register.set_v_register(0x4, 0x2);
+        register.set_v(0x4, 0x2);
         keypad.pressed(crate::chip8::keypad::Key::Key2);
 
         let instruction = SKP::new(0x4);
@@ -1553,7 +1536,7 @@ mod tests {
         // Arrange
         let mut register = Register::new();
         let mut keypad = Keypad::new();
-        register.set_v_register(0x4, 0x7);
+        register.set_v(0x4, 0x7);
         keypad.pressed(crate::chip8::keypad::Key::Key2);
 
         let instruction = SKP::new(0x4);
@@ -1570,7 +1553,7 @@ mod tests {
         // Arrange
         let mut register = Register::new();
         let keypad = Keypad::new();
-        register.set_v_register(0x4, 0x7);
+        register.set_v(0x4, 0x7);
 
         let instruction = SKP::new(0x4);
 
@@ -1586,7 +1569,7 @@ mod tests {
         // Arrange
         let mut register = Register::new();
         let mut keypad = Keypad::new();
-        register.set_v_register(0x4, 0x2);
+        register.set_v(0x4, 0x2);
         keypad.pressed(crate::chip8::keypad::Key::Key2);
 
         let instruction = SKNP::new(0x4);
@@ -1603,7 +1586,7 @@ mod tests {
         // Arrange
         let mut register = Register::new();
         let mut keypad = Keypad::new();
-        register.set_v_register(0x4, 0x7);
+        register.set_v(0x4, 0x7);
         keypad.pressed(crate::chip8::keypad::Key::Key2);
 
         let instruction = SKNP::new(0x4);
@@ -1620,7 +1603,7 @@ mod tests {
         // Arrange
         let mut register = Register::new();
         let keypad = Keypad::new();
-        register.set_v_register(0x4, 0x7);
+        register.set_v(0x4, 0x7);
 
         let instruction = SKNP::new(0x4);
 
@@ -1645,7 +1628,7 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0x2);
+        assert_eq!(register.get_v(0x4), 0x2);
     }
 
     #[test]
@@ -1662,7 +1645,7 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0x2);
+        assert_eq!(register.get_v(0x4), 0x2);
     }
 
     #[test]
@@ -1670,7 +1653,7 @@ mod tests {
         // Arrange
         let mut register = Register::new();
         let keypad = Keypad::new();
-        register.set_v_register(0x4, 0x7);
+        register.set_v(0x4, 0x7);
 
         let instruction = LDK::new(0x4);
 
@@ -1679,7 +1662,7 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x200);
-        assert_eq!(register.get_v_register(0x4), 0x7);
+        assert_eq!(register.get_v(0x4), 0x7);
     }
 
     #[test]
@@ -1687,7 +1670,7 @@ mod tests {
         // Arrange
         let mut register = Register::new();
         let mut delay_timer = Timer::new();
-        register.set_v_register(0x4, 0x2);
+        register.set_v(0x4, 0x2);
 
         let instruction = LDDTV::new(0x4);
 
@@ -1704,7 +1687,7 @@ mod tests {
         // Arrange
         let mut register = Register::new();
         let mut sound_timer = Timer::new();
-        register.set_v_register(0x4, 0x2);
+        register.set_v(0x4, 0x2);
 
         let instruction = LDST::new(0x4);
 
@@ -1720,8 +1703,8 @@ mod tests {
     fn test_addi() {
         // Arrange
         let mut register = Register::new();
-        register.set_index_register(0x400);
-        register.set_v_register(0x4, 0x20);
+        register.set_i(0x400);
+        register.set_v(0x4, 0x20);
 
         let instruction = ADDI::new(0x4);
 
@@ -1730,7 +1713,7 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_index_register(), 0x420);
+        assert_eq!(register.get_i(), 0x420);
     }
 
     #[test]
@@ -1739,24 +1722,24 @@ mod tests {
         let instruction = LDF::new(0x4);
 
         // Arrange
-        register.set_v_register(0x4, 0x0);
+        register.set_v(0x4, 0x0);
 
         // Act
         instruction.execute(&mut register);
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_index_register(), 0x050);
+        assert_eq!(register.get_i(), 0x050);
 
         // Arrange
-        register.set_v_register(0x4, 0x1);
+        register.set_v(0x4, 0x1);
 
         // Act
         instruction.execute(&mut register);
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x204);
-        assert_eq!(register.get_index_register(), 0x055);
+        assert_eq!(register.get_i(), 0x055);
     }
 
     #[test]
@@ -1765,8 +1748,8 @@ mod tests {
         let mut register = Register::new();
         let mut memory = Memory::new();
         let instruction = LDB::new(0x4);
-        register.set_index_register(0x400);
-        register.set_v_register(0x4, 0xF6);
+        register.set_i(0x400);
+        register.set_v(0x4, 0xF6);
 
         // Act
         instruction.execute(&mut register, &mut memory);
@@ -1784,23 +1767,23 @@ mod tests {
         let mut register = Register::new();
         let mut memory = Memory::new();
         let instruction = LDIV::new(0xF);
-        register.set_index_register(0x400);
-        register.set_v_register(0x0, 0x2);
-        register.set_v_register(0x1, 0x4);
-        register.set_v_register(0x2, 0x6);
-        register.set_v_register(0x3, 0x8);
-        register.set_v_register(0x4, 0xA);
-        register.set_v_register(0x5, 0xC);
-        register.set_v_register(0x6, 0xE);
-        register.set_v_register(0x7, 0x0);
-        register.set_v_register(0x8, 0x1);
-        register.set_v_register(0x9, 0x3);
-        register.set_v_register(0xA, 0x5);
-        register.set_v_register(0xB, 0x7);
-        register.set_v_register(0xC, 0x9);
-        register.set_v_register(0xD, 0xB);
-        register.set_v_register(0xE, 0xD);
-        register.set_v_register(0xF, 0xF);
+        register.set_i(0x400);
+        register.set_v(0x0, 0x2);
+        register.set_v(0x1, 0x4);
+        register.set_v(0x2, 0x6);
+        register.set_v(0x3, 0x8);
+        register.set_v(0x4, 0xA);
+        register.set_v(0x5, 0xC);
+        register.set_v(0x6, 0xE);
+        register.set_v(0x7, 0x0);
+        register.set_v(0x8, 0x1);
+        register.set_v(0x9, 0x3);
+        register.set_v(0xA, 0x5);
+        register.set_v(0xB, 0x7);
+        register.set_v(0xC, 0x9);
+        register.set_v(0xD, 0xB);
+        register.set_v(0xE, 0xD);
+        register.set_v(0xF, 0xF);
 
         // Act
         instruction.execute(&mut register, &mut memory);
@@ -1831,7 +1814,7 @@ mod tests {
         let mut register = Register::new();
         let mut memory = Memory::new();
         let instruction = LDVI::new(0xF);
-        register.set_index_register(0x400);
+        register.set_i(0x400);
         memory.set_byte(0x400 + 0x0, 0x2);
         memory.set_byte(0x400 + 0x1, 0x4);
         memory.set_byte(0x400 + 0x2, 0x6);
@@ -1854,21 +1837,21 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x0), 0x2);
-        assert_eq!(register.get_v_register(0x1), 0x4);
-        assert_eq!(register.get_v_register(0x2), 0x6);
-        assert_eq!(register.get_v_register(0x3), 0x8);
-        assert_eq!(register.get_v_register(0x4), 0xA);
-        assert_eq!(register.get_v_register(0x5), 0xC);
-        assert_eq!(register.get_v_register(0x6), 0xE);
-        assert_eq!(register.get_v_register(0x7), 0x0);
-        assert_eq!(register.get_v_register(0x8), 0x1);
-        assert_eq!(register.get_v_register(0x9), 0x3);
-        assert_eq!(register.get_v_register(0xA), 0x5);
-        assert_eq!(register.get_v_register(0xB), 0x7);
-        assert_eq!(register.get_v_register(0xC), 0x9);
-        assert_eq!(register.get_v_register(0xD), 0xB);
-        assert_eq!(register.get_v_register(0xE), 0xD);
-        assert_eq!(register.get_v_register(0xF), 0xF);
+        assert_eq!(register.get_v(0x0), 0x2);
+        assert_eq!(register.get_v(0x1), 0x4);
+        assert_eq!(register.get_v(0x2), 0x6);
+        assert_eq!(register.get_v(0x3), 0x8);
+        assert_eq!(register.get_v(0x4), 0xA);
+        assert_eq!(register.get_v(0x5), 0xC);
+        assert_eq!(register.get_v(0x6), 0xE);
+        assert_eq!(register.get_v(0x7), 0x0);
+        assert_eq!(register.get_v(0x8), 0x1);
+        assert_eq!(register.get_v(0x9), 0x3);
+        assert_eq!(register.get_v(0xA), 0x5);
+        assert_eq!(register.get_v(0xB), 0x7);
+        assert_eq!(register.get_v(0xC), 0x9);
+        assert_eq!(register.get_v(0xD), 0xB);
+        assert_eq!(register.get_v(0xE), 0xD);
+        assert_eq!(register.get_v(0xF), 0xF);
     }
 }

@@ -19,11 +19,11 @@ impl Register {
         }
     }
 
-    pub(super) fn get_index_register(&self) -> u16 {
+    pub(super) fn get_i(&self) -> u16 {
         self.i
     }
 
-    pub(super) fn set_index_register(&mut self, nnn: u16) {
+    pub(super) fn set_i(&mut self, nnn: u16) {
         self.i = nnn;
     }
 
@@ -47,11 +47,11 @@ impl Register {
         self.stack.pop().expect("failed to pop stack")
     }
 
-    pub(super) fn get_v_register(&self, x: u8) -> u8 {
+    pub(super) fn get_v(&self, x: u8) -> u8 {
         self.v[x as usize]
     }
 
-    pub(super) fn set_v_register(&mut self, x: u8, nn: u8) {
+    pub(super) fn set_v(&mut self, x: u8, nn: u8) {
         self.v[x as usize] = nn;
     }
 }

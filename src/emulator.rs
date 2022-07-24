@@ -123,6 +123,7 @@ mod system {
         }
     }
 
+    #[allow(clippy::needless_pass_by_value)]
     pub(super) fn audio_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         let music = asset_server.load("beep.ogg");
         commands.insert_resource(super::resource::Beep(music));
