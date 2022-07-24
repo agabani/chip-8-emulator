@@ -55,7 +55,7 @@ impl Cpu {
             Operation::LDK(o) => o.execute(register, keypad),
             Operation::LDDTV(o) => o.execute(register, delay_timer),
             Operation::LDST(o) => o.execute(register, sound_timer),
-            Operation::AddToIndex { x } => self.execute_add_to_index(x, register),
+            Operation::ADDI(o) => o.execute(register),
             Operation::LoadFont { x } => self.execute_load_font(x, register),
             Operation::BinaryCodedDecimalConversion { x } => {
                 self.execute_binary_coded_decimal_conversion(x, memory, register)
@@ -63,13 +63,6 @@ impl Cpu {
             Operation::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Operation::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_add_to_index(&mut self, x: u8, register: &mut Register) {
-        register.set_index_register(
-            register.get_index_register() + u16::from(register.get_v_register(x)),
-        );
-        register.increment_program_counter();
     }
 
     fn execute_load_font(&mut self, x: u8, register: &mut Register) {

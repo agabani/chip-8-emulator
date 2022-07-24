@@ -63,7 +63,7 @@ pub(super) enum Operation {
     /// FX18
     LDST(LDST),
     /// FX1E
-    AddToIndex { x: u8 },
+    ADDI(ADDI),
     /// FX29
     LoadFont { x: u8 },
     /// FX33
@@ -391,6 +391,16 @@ pub(super) struct LDST {
     x: u8,
 }
 
+/// Fx1E - ADD I, Vx
+///
+/// Set I = I + Vx.
+///
+/// The values of I and Vx are added, and the results are stored in I.
+#[derive(Debug, PartialEq)]
+pub(super) struct ADDI {
+    x: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -434,9 +444,7 @@ impl Operation {
             [0xF, n2, 0x0, 0xA] => Operation::LDK(LDK::new(nibble::to_n(n2))),
             [0xF, n2, 0x1, 0x5] => Operation::LDDTV(LDDTV::new(nibble::to_n(n2))),
             [0xF, n2, 0x1, 0x8] => Operation::LDST(LDST::new(nibble::to_n(n2))),
-            [0xF, n2, 0x1, 0xE] => Operation::AddToIndex {
-                x: nibble::to_n(n2),
-            },
+            [0xF, n2, 0x1, 0xE] => Operation::ADDI(ADDI::new(nibble::to_n(n2))),
             [0xF, n2, 0x2, 0x9] => Operation::LoadFont {
                 x: nibble::to_n(n2),
             },
@@ -913,6 +921,19 @@ impl LDST {
 
     pub(super) fn execute(&self, register: &mut Register, sound_timer: &mut Timer) {
         sound_timer.set(register.get_v_register(self.x));
+        register.increment_program_counter();
+    }
+}
+
+impl ADDI {
+    pub(super) fn new(x: u8) -> ADDI {
+        ADDI { x }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        register.set_index_register(
+            register.get_index_register() + u16::from(register.get_v_register(self.x)),
+        );
         register.increment_program_counter();
     }
 }
@@ -1637,5 +1658,22 @@ mod tests {
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
         assert_eq!(sound_timer.get(), 0x2);
+    }
+
+    #[test]
+    fn test_addi() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_index_register(0x400);
+        register.set_v_register(0x4, 0x20);
+
+        let instruction = ADDI::new(0x4);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_index_register(), 0x420);
     }
 }
