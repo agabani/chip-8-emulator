@@ -43,7 +43,7 @@ pub(super) enum Operation {
     /// 9XY0
     SNE2(SNE2),
     /// ANNN
-    SetIndexRegister { nnn: u16 },
+    LDI(LDI),
     /// BNNN
     JumpWithOffset { nnn: u16 },
     /// CXNN
@@ -283,6 +283,16 @@ pub(super) struct SNE2 {
     y: u8,
 }
 
+/// Annn - LD I, addr
+///
+/// Set I = nnn.
+///
+/// The value of register I is set to nnn.
+#[derive(Debug, PartialEq)]
+pub(super) struct LDI {
+    nnn: u16,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -312,9 +322,7 @@ impl Operation {
             [0x8, n2, n3, 0x7] => Operation::SUBN(SUBN::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0xE] => Operation::SHL(SHL::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x9, n2, n3, 0x0] => Operation::SNE2(SNE2::new(nibble::to_n(n2), nibble::to_n(n3))),
-            [0xA, n2, n3, n4] => Operation::SetIndexRegister {
-                nnn: nibble::to_nnn(n2, n3, n4),
-            },
+            [0xA, n2, n3, n4] => Operation::LDI(LDI::new(nibble::to_nnn(n2, n3, n4))),
             [0xB, n2, n3, n4] => Operation::JumpWithOffset {
                 nnn: nibble::to_nnn(n2, n3, n4),
             },
@@ -650,6 +658,17 @@ impl SNE2 {
         if register.get_v_register(self.x) != register.get_v_register(self.y) {
             register.increment_program_counter();
         }
+        register.increment_program_counter();
+    }
+}
+
+impl LDI {
+    pub(super) fn new(nnn: u16) -> LDI {
+        LDI { nnn }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        register.set_index_register(self.nnn);
         register.increment_program_counter();
     }
 }
@@ -1146,5 +1165,19 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x204);
+    }
+
+    #[test]
+    fn test_ldi() {
+        // Arrange
+        let mut register = Register::new();
+        let instruction = LDI::new(0x123);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_index_register(), 0x123);
     }
 }

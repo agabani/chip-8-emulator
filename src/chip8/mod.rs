@@ -101,7 +101,7 @@ mod tests {
     use std::io::Read;
 
     use super::{
-        operation::{Operation, ADD1, CLS, JP, LD1},
+        operation::{Operation, ADD1, CLS, JP, LD1, LDI},
         *,
     };
 
@@ -137,7 +137,7 @@ mod tests {
         let instructions = vec![
             // 00000000
             Operation::CLS(CLS::new()),
-            Operation::SetIndexRegister { nnn: 0x22A },
+            Operation::LDI(LDI::new(0x22A)),
             Operation::LD1(LD1::new(0x0, 0x0C)),
             Operation::LD1(LD1::new(0x1, 0x08)),
             Operation::DisplayDraw {
@@ -146,14 +146,14 @@ mod tests {
                 n: 0xF,
             },
             Operation::ADD1(ADD1::new(0x0, 0x09)),
-            Operation::SetIndexRegister { nnn: 0x239 },
+            Operation::LDI(LDI::new(0x239)),
             Operation::DisplayDraw {
                 x: 0x0,
                 y: 0x1,
                 n: 0xF,
             },
             // 00000010
-            Operation::SetIndexRegister { nnn: 0x248 },
+            Operation::LDI(LDI::new(0x248)),
             Operation::ADD1(ADD1::new(0x0, 0x08)),
             Operation::DisplayDraw {
                 x: 0x0,
@@ -161,14 +161,14 @@ mod tests {
                 n: 0xF,
             },
             Operation::ADD1(ADD1::new(0x0, 0x04)),
-            Operation::SetIndexRegister { nnn: 0x257 },
+            Operation::LDI(LDI::new(0x257)),
             Operation::DisplayDraw {
                 x: 0x0,
                 y: 0x1,
                 n: 0xF,
             },
             Operation::ADD1(ADD1::new(0x0, 0x08)),
-            Operation::SetIndexRegister { nnn: 0x266 },
+            Operation::LDI(LDI::new(0x266)),
             // 00000020
             Operation::DisplayDraw {
                 x: 0x0,
@@ -176,7 +176,7 @@ mod tests {
                 n: 0xF,
             },
             Operation::ADD1(ADD1::new(0x0, 0x08)),
-            Operation::SetIndexRegister { nnn: 0x275 },
+            Operation::LDI(LDI::new(0x275)),
             Operation::DisplayDraw {
                 x: 0x0,
                 y: 0x1,
