@@ -5,7 +5,7 @@ pub(super) enum Instruction {
     /// 00E0
     CLS(CLS),
     /// 00EE
-    Return,
+    RET(RET),
     /// 0NNN
     SystemAddress { nnn: u16 },
     /// 1NNN
@@ -78,6 +78,14 @@ pub(super) enum Instruction {
 #[derive(Debug, PartialEq)]
 pub(super) struct CLS;
 
+/// 00EE - RET
+///
+/// Return from a subroutine.
+///
+/// The interpreter sets the program counter to the address at the top of the stack, then subtracts 1 from the stack pointer.
+#[derive(Debug, PartialEq)]
+pub(super) struct RET;
+
 impl Instruction {
     pub(super) fn parse(bytes: [u8; 2]) -> Instruction {
         let nibbles = [
@@ -89,7 +97,7 @@ impl Instruction {
 
         match nibbles {
             [0x0, 0x0, 0xE, 0x0] => Instruction::CLS(CLS::new()),
-            [0x0, 0x0, 0xE, 0xE] => Instruction::Return,
+            [0x0, 0x0, 0xE, 0xE] => Instruction::RET(RET::new()),
             [0x0, n2, n3, n4] => Instruction::SystemAddress {
                 nnn: (u16::from(n2) << 8) + (u16::from(n3) << 4) + (u16::from(n4)),
             },
@@ -167,6 +175,18 @@ impl CLS {
     }
 }
 
+impl RET {
+    pub(super) fn new() -> RET {
+        RET
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        let program_counter = register.pop_stack();
+        register.set_program_counter(program_counter);
+        register.increment_program_counter();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -187,5 +207,27 @@ mod tests {
         assert_eq!(display.is_pixel_on(63, 0), false);
         assert_eq!(display.is_pixel_on(0, 31), false);
         assert_eq!(display.is_pixel_on(63, 31), false);
+    }
+
+    #[test]
+    fn test_ret() {
+        // Arrange
+        let mut register = Register::new();
+        register.push_stack(0x400);
+        register.push_stack(0x600);
+
+        let instruction = RET::new();
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x602);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x402);
     }
 }

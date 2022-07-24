@@ -26,7 +26,7 @@ impl Cpu {
 
         match instruction {
             Instruction::CLS(i) => i.execute(register, display),
-            Instruction::Return => self.execute_return(register),
+            Instruction::RET(i) => i.execute(register),
             Instruction::SystemAddress { nnn } => self.execute_system_address(nnn, register),
             Instruction::Jump { nnn } => self.execute_jump(nnn, register),
             Instruction::Call { nnn } => self.execute_call(nnn, register),
@@ -82,12 +82,6 @@ impl Cpu {
             Instruction::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Instruction::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_return(&mut self, register: &mut Register) {
-        let program_counter = register.pop_stack();
-        register.set_program_counter(program_counter);
-        register.increment_program_counter();
     }
 
     fn execute_system_address(&self, _nnn: u16, register: &mut Register) {
