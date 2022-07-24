@@ -13,7 +13,7 @@ pub(super) enum Instruction {
     /// 2NNN
     CALL(CALL),
     /// 3XNN
-    SkipIfEqual1 { x: u8, nn: u8 },
+    SE(SE),
     /// 4XNN
     SkipIfNotEqual1 { x: u8, nn: u8 },
     /// 5XY0
@@ -116,6 +116,17 @@ pub(super) struct CALL {
     nnn: u16,
 }
 
+/// 3xnn - SE Vx, byte
+///
+/// Skip next instruction if Vx = nn.
+///
+/// The interpreter compares register Vx to nn, and if they are equal, increments the program counter by 2.
+#[derive(Debug, PartialEq)]
+pub(super) struct SE {
+    x: u8,
+    nn: u8,
+}
+
 impl Instruction {
     pub(super) fn parse(bytes: [u8; 2]) -> Instruction {
         let nibbles = nibble::from_bytes(bytes);
@@ -126,10 +137,7 @@ impl Instruction {
             [0x0, n2, n3, n4] => Instruction::SYS(SYS::new(nibble::to_nnn(n2, n3, n4))),
             [0x1, n2, n3, n4] => Instruction::JP(JP::new(nibble::to_nnn(n2, n3, n4))),
             [0x2, n2, n3, n4] => Instruction::CALL(CALL::new(nibble::to_nnn(n2, n3, n4))),
-            [0x3, n2, n3, n4] => Instruction::SkipIfEqual1 {
-                x: nibble::to_n(n2),
-                nn: nibble::to_nn(n3, n4),
-            },
+            [0x3, n2, n3, n4] => Instruction::SE(SE::new(nibble::to_n(n2), nibble::to_nn(n3, n4))),
             [0x4, n2, n3, n4] => Instruction::SkipIfNotEqual1 {
                 x: nibble::to_n(n2),
                 nn: nibble::to_nn(n3, n4),
@@ -286,6 +294,19 @@ impl CALL {
     }
 }
 
+impl SE {
+    pub(super) fn new(x: u8, nn: u8) -> SE {
+        SE { x, nn }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        if register.get_v_register(self.x) == self.nn {
+            register.increment_program_counter();
+        }
+        register.increment_program_counter();
+    }
+}
+
 mod nibble {
     pub(super) fn from_bytes(bytes: [u8; 2]) -> [u8; 4] {
         [
@@ -388,5 +409,33 @@ mod tests {
         // Assert
         assert_eq!(register.get_program_counter(), 0x400);
         assert_eq!(register.pop_stack(), 0x200);
+    }
+
+    #[test]
+    fn test_se_equal() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x4, 0x2);
+        let instruction = SE::new(0x4, 0x2);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x204);
+    }
+
+    #[test]
+    fn test_se_not_equal() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x4, 0x2);
+        let instruction = SE::new(0x4, 0x1);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
     }
 }

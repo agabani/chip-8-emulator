@@ -30,7 +30,7 @@ impl Cpu {
             Instruction::SYS(i) => i.execute(),
             Instruction::JP(i) => i.execute(register),
             Instruction::CALL(i) => i.execute(register),
-            Instruction::SkipIfEqual1 { x, nn } => self.execute_skip_if_equal_1(x, nn, register),
+            Instruction::SE(i) => i.execute(register),
             Instruction::SkipIfNotEqual1 { x, nn } => {
                 self.execute_skip_if_not_equal_1(x, nn, register)
             }
@@ -82,13 +82,6 @@ impl Cpu {
             Instruction::StoreMemory { x } => self.execute_store_memory(x, memory, register),
             Instruction::LoadMemory { x } => self.execute_load_memory(x, memory, register),
         }
-    }
-
-    fn execute_skip_if_equal_1(&mut self, x: u8, nn: u8, register: &mut Register) {
-        if register.get_v_register(x) == nn {
-            register.increment_program_counter();
-        }
-        register.increment_program_counter();
     }
 
     fn execute_skip_if_not_equal_1(&mut self, x: u8, nn: u8, register: &mut Register) {
