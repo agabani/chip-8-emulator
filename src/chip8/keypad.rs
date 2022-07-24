@@ -20,28 +20,42 @@ pub(crate) enum Key {
 }
 
 pub(super) struct Keypad {
-    key: Option<Key>,
+    last_key: Option<Key>,
+    pressed: [bool; 0x10],
 }
 
 impl Keypad {
     pub(super) fn new() -> Keypad {
-        Keypad { key: None }
-    }
-
-    pub(crate) fn pressed(&mut self, key: Key) {
-        self.key = Some(key);
-    }
-
-    pub(crate) fn released(&mut self, key: Key) {
-        if let Some(current_key) = self.key {
-            if current_key == key {
-                self.key = None;
-            }
+        Keypad {
+            last_key: None,
+            pressed: [false; 0x10],
         }
     }
 
+    pub(crate) fn pressed(&mut self, key: Key) {
+        self.last_key = Some(key);
+        self.pressed[Self::map(key) as usize] = true;
+    }
+
+    pub(crate) fn released(&mut self, key: Key) {
+        if let Some(current_key) = self.last_key {
+            if current_key == key {
+                self.last_key = None;
+            }
+        }
+        self.pressed[Self::map(key) as usize] = false;
+    }
+
     pub(super) fn read(&self) -> Option<u8> {
-        self.key.map(|key| match key {
+        self.last_key.map(Self::map)
+    }
+
+    pub(super) fn is_pressed(&self, key: u8) -> bool {
+        self.pressed[key as usize]
+    }
+
+    fn map(key: Key) -> u8 {
+        match key {
             Key::Key0 => 0x0,
             Key::Key1 => 0x1,
             Key::Key2 => 0x2,
@@ -58,6 +72,6 @@ impl Keypad {
             Key::D => 0xD,
             Key::E => 0xE,
             Key::F => 0xF,
-        })
+        }
     }
 }

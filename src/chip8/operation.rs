@@ -854,12 +854,9 @@ impl SKP {
     }
 
     pub(super) fn execute(&self, register: &mut Register, keypad: &Keypad) {
-        if let Some(key) = keypad.read() {
-            if key == register.get_v_register(self.x) {
-                register.increment_program_counter();
-            }
+        if keypad.is_pressed(register.get_v_register(self.x)) {
+            register.increment_program_counter();
         }
-
         register.increment_program_counter();
     }
 }
@@ -870,14 +867,9 @@ impl SKNP {
     }
 
     pub(super) fn execute(&self, register: &mut Register, keypad: &Keypad) {
-        if let Some(key) = keypad.read() {
-            if key != register.get_v_register(self.x) {
-                register.increment_program_counter();
-            }
-        } else {
+        if !keypad.is_pressed(register.get_v_register(self.x)) {
             register.increment_program_counter();
         }
-
         register.increment_program_counter();
     }
 }
