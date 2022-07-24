@@ -39,7 +39,7 @@ pub(super) enum Operation {
     /// 8XY7
     SUBN(SUBN),
     /// 8XYE
-    ShiftLeft { x: u8, y: u8 },
+    SHL(SHL),
     /// 9XY0
     SkipIfNotEqual2 { x: u8, y: u8 },
     /// ANNN
@@ -261,6 +261,17 @@ pub(super) struct SUBN {
     y: u8,
 }
 
+/// 8xyE - SHL Vx {, Vy}
+///
+/// Set Vx = Vx SHL 1.
+///
+///  If the most-significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is multiplied by 2.
+#[derive(Debug, PartialEq)]
+pub(super) struct SHL {
+    x: u8,
+    y: u8,
+}
+
 impl Operation {
     pub(super) fn parse(bytes: [u8; 2]) -> Operation {
         let nibbles = nibble::from_bytes(bytes);
@@ -288,10 +299,7 @@ impl Operation {
             [0x8, n2, n3, 0x5] => Operation::SUB(SUB::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0x6] => Operation::SHR(SHR::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x8, n2, n3, 0x7] => Operation::SUBN(SUBN::new(nibble::to_n(n2), nibble::to_n(n3))),
-            [0x8, n2, n3, 0xE] => Operation::ShiftLeft {
-                x: nibble::to_n(n2),
-                y: nibble::to_n(n3),
-            },
+            [0x8, n2, n3, 0xE] => Operation::SHL(SHL::new(nibble::to_n(n2), nibble::to_n(n3))),
             [0x9, n2, n3, 0x0] => Operation::SkipIfNotEqual2 {
                 x: nibble::to_n(n2),
                 y: nibble::to_n(n3),
@@ -570,7 +578,7 @@ impl SHR {
 
         let vx = register.get_v_register(self.x);
 
-        if vx & 0b1 == 0b1 {
+        if vx & 0b0000_0001 == 0b0000_0001 {
             register.set_v_register(0xF, 0x1);
         } else {
             register.set_v_register(0xF, 0x0);
@@ -598,6 +606,28 @@ impl SUBN {
             register.set_v_register(0xF, 0x1);
         }
 
+        register.set_v_register(self.x, nn);
+        register.increment_program_counter();
+    }
+}
+
+impl SHL {
+    pub(super) fn new(x: u8, y: u8) -> SHL {
+        SHL { x, y }
+    }
+
+    pub(super) fn execute(&self, register: &mut Register) {
+        // TODO: optional Vx = Vy
+
+        let vx = register.get_v_register(self.x);
+
+        if vx & 0b1000_0000 == 0b1000_0000 {
+            register.set_v_register(0xF, 0x1);
+        } else {
+            register.set_v_register(0xF, 0x0);
+        }
+
+        let (nn, _) = vx.overflowing_shl(0x1);
         register.set_v_register(self.x, nn);
         register.increment_program_counter();
     }
@@ -973,7 +1003,7 @@ mod tests {
     fn test_shr_0() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0b11111010);
+        register.set_v_register(0x4, 0b1111_1010);
         let instruction = SHR::new(0x4, 0x2);
 
         // Act
@@ -981,7 +1011,7 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0b01111101);
+        assert_eq!(register.get_v_register(0x4), 0b0111_1101);
         assert_eq!(register.get_v_register(0xF), 0x0);
     }
 
@@ -989,7 +1019,7 @@ mod tests {
     fn test_shr_1() {
         // Arrange
         let mut register = Register::new();
-        register.set_v_register(0x4, 0b11110101);
+        register.set_v_register(0x4, 0b1111_0101);
         let instruction = SHR::new(0x4, 0x2);
 
         // Act
@@ -997,7 +1027,7 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v_register(0x4), 0b01111010);
+        assert_eq!(register.get_v_register(0x4), 0b0111_1010);
         assert_eq!(register.get_v_register(0xF), 0x1);
     }
 
@@ -1033,5 +1063,37 @@ mod tests {
         assert_eq!(register.get_program_counter(), 0x202);
         assert_eq!(register.get_v_register(0x4), 0xFE);
         assert_eq!(register.get_v_register(0xF), 0x0);
+    }
+
+    #[test]
+    fn test_shl_0() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x4, 0b0101_1111);
+        let instruction = SHL::new(0x4, 0x2);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_v_register(0x4), 0b1011_1110);
+        assert_eq!(register.get_v_register(0xF), 0x0);
+    }
+
+    #[test]
+    fn test_shl_1() {
+        // Arrange
+        let mut register = Register::new();
+        register.set_v_register(0x4, 0b1010_1111);
+        let instruction = SHL::new(0x4, 0x2);
+
+        // Act
+        instruction.execute(&mut register);
+
+        // Assert
+        assert_eq!(register.get_program_counter(), 0x202);
+        assert_eq!(register.get_v_register(0x4), 0b0101_1110);
+        assert_eq!(register.get_v_register(0xF), 0x1);
     }
 }
