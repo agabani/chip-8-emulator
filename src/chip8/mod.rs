@@ -13,6 +13,7 @@ use self::{
 };
 
 pub(crate) struct Emulator {
+    beeping: bool,
     cpu: Cpu,
     delay_timer: Timer,
     display: Display,
@@ -28,6 +29,7 @@ pub(crate) struct Emulator {
 impl Emulator {
     pub(crate) fn new() -> Emulator {
         let mut emulator = Emulator {
+            beeping: false,
             cpu: Cpu::new(),
             delay_timer: Timer::new(),
             display: Display::new(),
@@ -53,8 +55,16 @@ impl Emulator {
             return;
         }
 
+        let b1 = self.sound_timer.get();
         self.delay_timer.tick(delta);
         self.sound_timer.tick(delta);
+        let b2 = self.sound_timer.get();
+
+        if b2 > 0 && b1 != b2 {
+            self.beeping = true;
+        } else {
+            self.beeping = false;
+        }
 
         let current_time = self.time;
         let target_time = self.time.saturating_add(*delta);
@@ -75,6 +85,10 @@ impl Emulator {
         }
 
         self.time = target_time;
+    }
+
+    pub(crate) fn is_beeping(&self) -> bool {
+        self.beeping
     }
 
     pub(crate) fn is_pixel_on(&self, x: u8, y: u8) -> bool {

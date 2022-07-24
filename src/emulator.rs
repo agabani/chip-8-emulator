@@ -27,11 +27,18 @@ pub(crate) mod plugin {
 
     impl bevy::prelude::Plugin for Plugin {
         fn build(&self, app: &mut bevy::prelude::App) {
-            app.add_system(system::drag_and_drop_rom)
+            app.add_startup_system(system::audio_setup)
+                .add_system(system::drag_and_drop_rom)
                 .add_system(system::emulate)
                 .add_system(system::keyboard);
         }
     }
+}
+
+mod resource {
+    use bevy::prelude::*;
+
+    pub(crate) struct Beep(pub(crate) Handle<AudioSource>);
 }
 
 mod system {
@@ -68,8 +75,18 @@ mod system {
     }
 
     #[allow(clippy::needless_pass_by_value)]
-    pub(super) fn emulate(time: Res<Time>, mut emulator: ResMut<crate::chip8::Emulator>) {
+    pub(super) fn emulate(
+        time: Res<Time>,
+        asset_server: Res<AssetServer>,
+        audio: Res<Audio>,
+        beep: Res<super::resource::Beep>,
+        mut emulator: ResMut<crate::chip8::Emulator>,
+    ) {
         emulator.emulate(&time.delta());
+
+        if emulator.is_beeping() {
+            audio.play(asset_server.get_handle(&beep.0));
+        }
     }
 
     #[allow(clippy::needless_pass_by_value)]
@@ -104,5 +121,10 @@ mod system {
                 emulator.key_released(keypad);
             }
         }
+    }
+
+    pub(super) fn audio_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+        let music = asset_server.load("beep.ogg");
+        commands.insert_resource(super::resource::Beep(music));
     }
 }
