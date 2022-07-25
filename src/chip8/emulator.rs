@@ -17,6 +17,7 @@ pub(crate) struct Emulator {
     time: std::time::Duration,
 }
 
+#[cfg(feature = "editor")]
 pub(crate) struct Debug {
     pub(crate) delay_timer: u8,
     pub(crate) memory_ram: Vec<u8>,
@@ -88,40 +89,6 @@ impl Emulator {
         self.time = target_time;
     }
 
-    pub(crate) fn get_debug(&self) -> Debug {
-        Debug {
-            delay_timer: self.delay_timer.get(),
-            memory_ram: self.memory.get_ram().into(),
-            register_i: self.register.get_i(),
-            register_program_counter: self.register.get_program_counter(),
-            register_stack: self.register.get_stack().into(),
-            register_v: (0..=0xF)
-                .into_iter()
-                .map(|x| self.register.get_v(x))
-                .collect(),
-            sound_timer: self.sound_timer.get(),
-        }
-    }
-
-    pub(crate) fn step_execute(&mut self) {
-        self.cpu.execute(
-            &mut self.register,
-            &mut self.display,
-            &self.keypad,
-            &mut self.memory,
-            &mut self.delay_timer,
-            &mut self.sound_timer,
-        );
-    }
-
-    pub(crate) fn zero_delay(&mut self) {
-        self.delay_timer.set(0);
-    }
-
-    pub(crate) fn zero_sound(&mut self) {
-        self.sound_timer.set(0);
-    }
-
     pub(crate) fn is_beeping(&self) -> bool {
         self.beeping
     }
@@ -141,5 +108,43 @@ impl Emulator {
     pub(crate) fn load_rom(&mut self, rom: &[u8]) -> crate::Result<()> {
         self.paused = false;
         self.memory.load_rom(rom)
+    }
+
+    #[cfg(feature = "editor")]
+    pub(crate) fn get_debug(&self) -> Debug {
+        Debug {
+            delay_timer: self.delay_timer.get(),
+            memory_ram: self.memory.get_ram().into(),
+            register_i: self.register.get_i(),
+            register_program_counter: self.register.get_program_counter(),
+            register_stack: self.register.get_stack().into(),
+            register_v: (0..=0xF)
+                .into_iter()
+                .map(|x| self.register.get_v(x))
+                .collect(),
+            sound_timer: self.sound_timer.get(),
+        }
+    }
+
+    #[cfg(feature = "editor")]
+    pub(crate) fn step_execute(&mut self) {
+        self.cpu.execute(
+            &mut self.register,
+            &mut self.display,
+            &self.keypad,
+            &mut self.memory,
+            &mut self.delay_timer,
+            &mut self.sound_timer,
+        );
+    }
+
+    #[cfg(feature = "editor")]
+    pub(crate) fn zero_delay(&mut self) {
+        self.delay_timer.set(0);
+    }
+
+    #[cfg(feature = "editor")]
+    pub(crate) fn zero_sound(&mut self) {
+        self.sound_timer.set(0);
     }
 }

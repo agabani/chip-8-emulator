@@ -39,10 +39,6 @@ impl Register {
         self.program_counter += 2;
     }
 
-    pub(super) fn get_stack(&self) -> &[u16] {
-        &self.stack
-    }
-
     pub(super) fn push_stack(&mut self, nnn: u16) {
         self.stack.push(nnn);
     }
@@ -57,5 +53,10 @@ impl Register {
 
     pub(super) fn set_v(&mut self, x: u8, nn: u8) {
         self.v[x as usize] = nn;
+    }
+
+    #[cfg(feature = "editor")]
+    pub(super) fn get_stack(&self) -> &[u16] {
+        &self.stack
     }
 }

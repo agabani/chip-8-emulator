@@ -1,25 +1,3 @@
-pub(crate) mod component {
-    use bevy::prelude::*;
-
-    #[derive(Component)]
-    pub(crate) struct Content(pub(crate) Vec<u8>);
-
-    #[derive(Component)]
-    pub(crate) struct Path(pub(crate) String);
-
-    impl Content {
-        pub(crate) fn new(binary: Vec<u8>) -> Content {
-            Content(binary)
-        }
-    }
-
-    impl Path {
-        pub(crate) fn new(path: String) -> Path {
-            Path(path)
-        }
-    }
-}
-
 pub(crate) mod plugin {
     use super::system;
 
@@ -46,12 +24,11 @@ mod system {
 
     use bevy::prelude::*;
 
-    use super::component;
+    use crate::chip8::emulator;
 
     pub(super) fn drag_and_drop_rom(
         mut commands: Commands,
         mut reader: EventReader<FileDragAndDrop>,
-        mut emulator: ResMut<crate::chip8::emulator::Emulator>,
     ) {
         for event in reader.iter() {
             match event {
@@ -60,13 +37,9 @@ mod system {
                     let mut file = std::fs::File::open(path_buf).expect("failed to open file");
                     file.read_to_end(&mut rom).expect("failed to read file");
 
+                    let mut emulator = emulator::Emulator::new();
                     emulator.load_rom(&rom).expect("failed to load rom");
-
-                    commands
-                        .spawn()
-                        .insert(Name::new("rom"))
-                        .insert(component::Path::new(path_buf.to_str().unwrap().to_string()))
-                        .insert(component::Content::new(rom));
+                    commands.insert_resource(emulator);
                 }
                 FileDragAndDrop::HoveredFile { id: _, path_buf: _ }
                 | FileDragAndDrop::HoveredFileCancelled { id: _ } => (),
