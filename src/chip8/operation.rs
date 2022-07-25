@@ -1016,10 +1016,10 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(display.is_pixel_on(0, 0), false);
-        assert_eq!(display.is_pixel_on(63, 0), false);
-        assert_eq!(display.is_pixel_on(0, 31), false);
-        assert_eq!(display.is_pixel_on(63, 31), false);
+        assert!(!display.is_pixel_on(0, 0));
+        assert!(!display.is_pixel_on(63, 0));
+        assert!(!display.is_pixel_on(0, 31));
+        assert!(!display.is_pixel_on(63, 31));
     }
 
     #[test]
@@ -1231,8 +1231,8 @@ mod tests {
     fn test_or() {
         // Arrange
         let mut register = Register::new();
-        register.set_v(0x7, 0b01010101);
-        register.set_v(0x4, 0b10100101);
+        register.set_v(0x7, 0b0101_0101);
+        register.set_v(0x4, 0b1010_0101);
         let instruction = OR::new(0x4, 0x7);
 
         // Act
@@ -1240,15 +1240,15 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v(0x4), 0b11110101);
+        assert_eq!(register.get_v(0x4), 0b1111_0101);
     }
 
     #[test]
     fn test_and2() {
         // Arrange
         let mut register = Register::new();
-        register.set_v(0x7, 0b01010101);
-        register.set_v(0x4, 0b10100101);
+        register.set_v(0x7, 0b0101_0101);
+        register.set_v(0x4, 0b1010_0101);
         let instruction = AND2::new(0x4, 0x7);
 
         // Act
@@ -1256,15 +1256,15 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v(0x4), 0b00000101);
+        assert_eq!(register.get_v(0x4), 0b0000_0101);
     }
 
     #[test]
     fn test_xor() {
         // Arrange
         let mut register = Register::new();
-        register.set_v(0x7, 0b01010101);
-        register.set_v(0x4, 0b10100101);
+        register.set_v(0x7, 0b0101_0101);
+        register.set_v(0x4, 0b1010_0101);
         let instruction = XOR::new(0x4, 0x7);
 
         // Act
@@ -1272,7 +1272,7 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(register.get_v(0x4), 0b11110000);
+        assert_eq!(register.get_v(0x4), 0b1111_0000);
     }
 
     #[test]
@@ -1756,7 +1756,7 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(memory.get_byte(0x400 + 0x0), 0x2);
+        assert_eq!(memory.get_byte(0x400), 0x2);
         assert_eq!(memory.get_byte(0x400 + 0x1), 0x4);
         assert_eq!(memory.get_byte(0x400 + 0x2), 0x6);
     }
@@ -1790,7 +1790,7 @@ mod tests {
 
         // Assert
         assert_eq!(register.get_program_counter(), 0x202);
-        assert_eq!(memory.get_byte(0x400 + 0x0), 0x2);
+        assert_eq!(memory.get_byte(0x400), 0x2);
         assert_eq!(memory.get_byte(0x400 + 0x1), 0x4);
         assert_eq!(memory.get_byte(0x400 + 0x2), 0x6);
         assert_eq!(memory.get_byte(0x400 + 0x3), 0x8);
@@ -1815,7 +1815,7 @@ mod tests {
         let mut memory = Memory::new();
         let instruction = LDVI::new(0xF);
         register.set_i(0x400);
-        memory.set_byte(0x400 + 0x0, 0x2);
+        memory.set_byte(0x400, 0x2);
         memory.set_byte(0x400 + 0x1, 0x4);
         memory.set_byte(0x400 + 0x2, 0x6);
         memory.set_byte(0x400 + 0x3, 0x8);

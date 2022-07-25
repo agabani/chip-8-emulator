@@ -123,10 +123,10 @@ mod tests {
     fn get_pixel() {
         let emulator = Emulator::new();
 
-        assert_eq!(emulator.is_pixel_on(0, 0), false);
-        assert_eq!(emulator.is_pixel_on(63, 0), false);
-        assert_eq!(emulator.is_pixel_on(0, 0), false);
-        assert_eq!(emulator.is_pixel_on(0, 31), false);
+        assert!(!emulator.is_pixel_on(0, 0));
+        assert!(!emulator.is_pixel_on(63, 0));
+        assert!(!emulator.is_pixel_on(0, 0));
+        assert!(!emulator.is_pixel_on(0, 31));
     }
 
     #[test]
@@ -139,6 +139,7 @@ mod tests {
         emulator.load_rom(&rom).unwrap();
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     #[test]
     fn parse_instruction() {
         let mut rom = Vec::new();
