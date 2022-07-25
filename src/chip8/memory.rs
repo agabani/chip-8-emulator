@@ -24,6 +24,10 @@ impl Memory {
         Ok(())
     }
 
+    pub(super) fn get_ram(&self) -> &[u8] {
+        &self.ram
+    }
+
     pub(super) fn get_byte(&self, address: u16) -> u8 {
         self.ram[address as usize]
     }

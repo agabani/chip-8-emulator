@@ -26,6 +26,14 @@ pub(crate) struct Emulator {
     time: std::time::Duration,
 }
 
+pub(crate) struct Debug {
+    pub(crate) register_i: u16,
+    pub(crate) register_program_counter: u16,
+    pub(crate) register_stack: Vec<u16>,
+    pub(crate) register_v: Vec<u8>,
+    pub(crate) memory_ram: Vec<u8>,
+}
+
 impl Emulator {
     pub(crate) fn new() -> Emulator {
         let mut emulator = Emulator {
@@ -85,6 +93,19 @@ impl Emulator {
         }
 
         self.time = target_time;
+    }
+
+    pub(crate) fn get_debug(&self) -> Debug {
+        Debug {
+            register_i: self.register.get_i(),
+            register_program_counter: self.register.get_program_counter(),
+            register_stack: self.register.get_stack().into(),
+            register_v: (0..=0xF)
+                .into_iter()
+                .map(|x| self.register.get_v(x))
+                .collect(),
+            memory_ram: self.memory.get_ram().into(),
+        }
     }
 
     pub(crate) fn is_beeping(&self) -> bool {

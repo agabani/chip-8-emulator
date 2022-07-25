@@ -39,6 +39,10 @@ impl Register {
         self.program_counter += 2;
     }
 
+    pub(super) fn get_stack(&self) -> &[u16] {
+        &self.stack
+    }
+
     pub(super) fn push_stack(&mut self, nnn: u16) {
         self.stack.push(nnn);
     }
