@@ -6,7 +6,7 @@ pub fn run() {
     let mut app = App::new();
 
     app.insert_resource(window::resource())
-        .insert_resource(chip8::Emulator::new())
+        .insert_resource(chip8::emulator::Emulator::new())
         .add_plugins(DefaultPlugins)
         .add_startup_system(camera::system::spawn)
         .add_plugin(display::plugin::Plugin)

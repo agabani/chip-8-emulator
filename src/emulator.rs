@@ -51,7 +51,7 @@ mod system {
     pub(super) fn drag_and_drop_rom(
         mut commands: Commands,
         mut reader: EventReader<FileDragAndDrop>,
-        mut emulator: ResMut<crate::chip8::Emulator>,
+        mut emulator: ResMut<crate::chip8::emulator::Emulator>,
     ) {
         for event in reader.iter() {
             match event {
@@ -80,7 +80,7 @@ mod system {
         asset_server: Res<AssetServer>,
         audio: Res<Audio>,
         beep: Res<super::resource::Beep>,
-        mut emulator: ResMut<crate::chip8::Emulator>,
+        mut emulator: ResMut<crate::chip8::emulator::Emulator>,
     ) {
         emulator.emulate(&time.delta());
 
@@ -92,7 +92,7 @@ mod system {
     #[allow(clippy::needless_pass_by_value)]
     pub(super) fn keyboard(
         keys: Res<Input<KeyCode>>,
-        mut emulator: ResMut<crate::chip8::Emulator>,
+        mut emulator: ResMut<crate::chip8::emulator::Emulator>,
     ) {
         use crate::chip8::keypad::Key;
 

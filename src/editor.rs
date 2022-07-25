@@ -57,7 +57,9 @@ mod window {
         fn ui(world: &mut World, mut cx: EditorWindowContext, ui: &mut egui::Ui) {
             let state = cx.state_mut::<EmulatorWindow>().unwrap();
 
-            let emulator = world.get_resource::<crate::chip8::Emulator>().unwrap();
+            let emulator = world
+                .get_resource::<crate::chip8::emulator::Emulator>()
+                .unwrap();
 
             let debug = emulator.get_debug();
 
@@ -192,10 +194,6 @@ mod window {
                         // *counter += 1;
                     }
                 });
-        }
-
-        fn app_setup(app: &mut App) {
-            let _ = app;
         }
     }
 }
