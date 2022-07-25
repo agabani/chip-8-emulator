@@ -42,17 +42,24 @@ mod window {
 
     pub struct EmulatorWindow;
 
+    #[derive(Default)]
+    pub struct EmulatorWindowState {
+        pub follow_program_counter: bool,
+    }
+
     impl EditorWindow for EmulatorWindow {
-        type State = ();
+        type State = EmulatorWindowState;
 
         const NAME: &'static str = "Emulator";
 
         const DEFAULT_SIZE: (f32, f32) = (480.0, 240.0);
 
-        fn ui(world: &mut World, mut _cx: EditorWindowContext, ui: &mut egui::Ui) {
+        fn ui(world: &mut World, mut cx: EditorWindowContext, ui: &mut egui::Ui) {
+            let state = cx.state_mut::<EmulatorWindow>().unwrap();
+
             let emulator = world.get_resource::<crate::chip8::Emulator>().unwrap();
 
-            let state = emulator.get_debug();
+            let debug = emulator.get_debug();
 
             egui::ScrollArea::vertical()
                 .auto_shrink([false, false])
@@ -64,7 +71,7 @@ mod window {
                                 ui.label("Index");
                                 ui.horizontal(|ui| {
                                     ui.label("I:");
-                                    ui.label(format!("{:016X}", state.register_i));
+                                    ui.label(format!("{:016X}", debug.register_i));
                                 });
                             });
 
@@ -73,7 +80,7 @@ mod window {
                                 ui.label("Program Counter");
                                 ui.horizontal(|ui| {
                                     ui.label("PC:");
-                                    ui.label(format!("{:016X}", state.register_program_counter));
+                                    ui.label(format!("{:016X}", debug.register_program_counter));
                                 });
                             });
 
@@ -87,7 +94,7 @@ mod window {
                                     ui.label("Vx");
                                     ui.end_row();
 
-                                    for (x, vx) in state.register_v.iter().enumerate() {
+                                    for (x, vx) in debug.register_v.iter().enumerate() {
                                         ui.label(format!("{:01X}", x));
                                         ui.label(format!("{:02X}", vx));
                                         ui.end_row();
@@ -103,7 +110,7 @@ mod window {
                                     ui.label("PC");
                                     ui.end_row();
 
-                                    for (x, pc) in state.register_stack.iter().enumerate() {
+                                    for (x, pc) in debug.register_stack.iter().enumerate() {
                                         ui.label(format!("{:01X}:", x));
                                         ui.label(format!("{:016X}", pc));
                                         ui.end_row();
@@ -125,6 +132,10 @@ mod window {
                             scroll_bottom |= ui.button("Scroll to bottom").clicked();
                             scroll_program_counter |=
                                 ui.button("Scroll to program counter").clicked();
+                            ui.checkbox(
+                                &mut state.follow_program_counter,
+                                "Follow program counter",
+                            );
                         });
 
                         ui.separator();
@@ -143,17 +154,19 @@ mod window {
                                     }
                                     ui.end_row();
 
-                                    for (i, bytes) in state.memory_ram.chunks(16).enumerate() {
+                                    for (i, bytes) in debug.memory_ram.chunks(16).enumerate() {
                                         ui.label(format!("{:08X}", i * 0x10));
                                         for (j, byte) in bytes.iter().enumerate() {
                                             if i as u16 * 0x10 + j as u16
-                                                == state.register_program_counter
+                                                == debug.register_program_counter
                                             {
                                                 let response = ui.colored_label(
                                                     egui::Color32::YELLOW,
                                                     format!("{:02X}", byte),
                                                 );
-                                                if scroll_program_counter {
+                                                if scroll_program_counter
+                                                    || state.follow_program_counter
+                                                {
                                                     response.scroll_to_me(Some(egui::Align::Center))
                                                 }
                                             } else {
