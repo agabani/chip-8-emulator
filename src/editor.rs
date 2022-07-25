@@ -57,8 +57,8 @@ mod window {
         fn ui(world: &mut World, mut cx: EditorWindowContext, ui: &mut egui::Ui) {
             let state = cx.state_mut::<EmulatorWindow>().unwrap();
 
-            let emulator = world
-                .get_resource::<crate::chip8::emulator::Emulator>()
+            let mut emulator = world
+                .get_resource_mut::<crate::chip8::emulator::Emulator>()
                 .unwrap();
 
             let debug = emulator.get_debug();
@@ -66,134 +66,165 @@ mod window {
             egui::ScrollArea::vertical()
                 .auto_shrink([false, false])
                 .show(ui, |ui| {
-                    egui::CollapsingHeader::new("Register").show(ui, |ui| {
-                        egui::Grid::new("register").striped(false).show(ui, |ui| {
-                            ui.vertical(|ui| {
-                                ui.separator();
-                                ui.label("Index");
-                                ui.horizontal(|ui| {
-                                    ui.label("I:");
-                                    ui.label(format!("{:016X}", debug.register_i));
-                                });
-                            });
-
-                            ui.vertical(|ui| {
-                                ui.separator();
-                                ui.label("Program Counter");
-                                ui.horizontal(|ui| {
-                                    ui.label("PC:");
-                                    ui.label(format!("{:016X}", debug.register_program_counter));
-                                });
-                            });
-
-                            ui.end_row();
-
-                            ui.vertical(|ui| {
-                                ui.separator();
-                                ui.label("V");
-                                egui::Grid::new("grid_vx").striped(true).show(ui, |ui| {
-                                    ui.label("x");
-                                    ui.label("Vx");
-                                    ui.end_row();
-
-                                    for (x, vx) in debug.register_v.iter().enumerate() {
-                                        ui.label(format!("{:01X}", x));
-                                        ui.label(format!("{:02X}", vx));
-                                        ui.end_row();
-                                    }
-                                });
-                            });
-
-                            ui.vertical(|ui| {
-                                ui.separator();
-                                ui.label("Stack");
-                                egui::Grid::new("grid stack").striped(true).show(ui, |ui| {
-                                    ui.label("x");
-                                    ui.label("PC");
-                                    ui.end_row();
-
-                                    for (x, pc) in debug.register_stack.iter().enumerate() {
-                                        ui.label(format!("{:01X}:", x));
-                                        ui.label(format!("{:016X}", pc));
-                                        ui.end_row();
-                                    }
-                                });
-                            });
-
-                            ui.end_row();
-                        });
-                    });
-
-                    egui::CollapsingHeader::new("Memory").show(ui, |ui| {
-                        let mut scroll_top = false;
-                        let mut scroll_bottom = false;
-                        let mut scroll_program_counter = false;
-
-                        ui.horizontal(|ui| {
-                            scroll_top |= ui.button("Scroll to top").clicked();
-                            scroll_bottom |= ui.button("Scroll to bottom").clicked();
-                            scroll_program_counter |=
-                                ui.button("Scroll to program counter").clicked();
-                            ui.checkbox(
-                                &mut state.follow_program_counter,
-                                "Follow program counter",
-                            );
-                        });
-
-                        ui.separator();
-
-                        egui::ScrollArea::vertical()
-                            .max_height(200.0)
-                            .show(ui, |ui| {
-                                if scroll_top {
-                                    ui.scroll_to_cursor(Some(egui::Align::TOP));
-                                }
-
-                                egui::Grid::new("memory_ram").striped(true).show(ui, |ui| {
-                                    ui.label("Address");
-                                    for i in 0..=0xF {
-                                        ui.label(format!("{:1X}", i));
-                                    }
-                                    ui.end_row();
-
-                                    for (i, bytes) in debug.memory_ram.chunks(16).enumerate() {
-                                        ui.label(format!("{:08X}", i * 0x10));
-                                        for (j, byte) in bytes.iter().enumerate() {
-                                            if i as u16 * 0x10 + j as u16
-                                                == debug.register_program_counter
-                                            {
-                                                let response = ui.colored_label(
-                                                    egui::Color32::YELLOW,
-                                                    format!("{:02X}", byte),
-                                                );
-                                                if scroll_program_counter
-                                                    || state.follow_program_counter
-                                                {
-                                                    response.scroll_to_me(Some(egui::Align::Center))
-                                                }
-                                            } else {
-                                                ui.label(format!("{:02X}", byte));
-                                            }
-                                        }
-                                        ui.end_row();
-                                    }
-                                });
-
-                                if scroll_bottom {
-                                    ui.scroll_to_cursor(Some(egui::Align::BOTTOM));
-                                }
-                            });
-                    });
-
-                    if ui.button("-").clicked() {
-                        println!("hi")
-                        // *counter -= 1;
-                    }
-                    if ui.button("+").clicked() {
-                        println!("ho")
-                        // *counter += 1;
-                    }
+                    register_ui(ui, &debug);
+                    memory_ui(ui, state, &debug);
+                    debug_ui(ui, &mut emulator);
                 });
         }
+    }
+
+    fn register_ui(ui: &mut egui::Ui, debug: &crate::chip8::emulator::Debug) {
+        egui::CollapsingHeader::new("Register").show(ui, |ui| {
+            egui::Grid::new("register").striped(false).show(ui, |ui| {
+                ui.vertical(|ui| {
+                    ui.separator();
+                    ui.label("Index");
+                    ui.horizontal(|ui| {
+                        ui.label("I:");
+                        ui.label(format!("{:016X}", debug.register_i));
+                    });
+                });
+
+                ui.vertical(|ui| {
+                    ui.separator();
+                    ui.label("Program Counter");
+                    ui.horizontal(|ui| {
+                        ui.label("PC:");
+                        ui.label(format!("{:016X}", debug.register_program_counter));
+                    });
+                });
+
+                ui.end_row();
+
+                ui.vertical(|ui| {
+                    ui.separator();
+                    ui.label("Delay Timer");
+                    ui.horizontal(|ui| {
+                        ui.label("DT:");
+                        ui.label(format!("{:08X}", debug.delay_timer));
+                    });
+                });
+
+                ui.vertical(|ui| {
+                    ui.separator();
+                    ui.label("Sound Timer");
+                    ui.horizontal(|ui| {
+                        ui.label("ST:");
+                        ui.label(format!("{:08X}", debug.sound_timer));
+                    });
+                });
+
+                ui.end_row();
+
+                ui.vertical(|ui| {
+                    ui.separator();
+                    ui.label("V");
+                    egui::Grid::new("grid_vx").striped(true).show(ui, |ui| {
+                        ui.label("x");
+                        ui.label("Vx");
+                        ui.end_row();
+
+                        for (x, vx) in debug.register_v.iter().enumerate() {
+                            ui.label(format!("{:01X}", x));
+                            ui.label(format!("{:02X}", vx));
+                            ui.end_row();
+                        }
+                    });
+                });
+
+                ui.vertical(|ui| {
+                    ui.separator();
+                    ui.label("Stack");
+                    egui::Grid::new("grid stack").striped(true).show(ui, |ui| {
+                        ui.label("x");
+                        ui.label("PC");
+                        ui.end_row();
+
+                        for (x, pc) in debug.register_stack.iter().enumerate() {
+                            ui.label(format!("{:01X}:", x));
+                            ui.label(format!("{:016X}", pc));
+                            ui.end_row();
+                        }
+                    });
+                });
+
+                ui.end_row();
+            });
+        });
+    }
+
+    fn memory_ui(
+        ui: &mut egui::Ui,
+        state: &mut EmulatorWindowState,
+        debug: &crate::chip8::emulator::Debug,
+    ) {
+        egui::CollapsingHeader::new("Memory").show(ui, |ui| {
+            let mut scroll_top = false;
+            let mut scroll_bottom = false;
+            let mut scroll_program_counter = false;
+
+            ui.horizontal(|ui| {
+                scroll_top |= ui.button("Scroll to top").clicked();
+                scroll_bottom |= ui.button("Scroll to bottom").clicked();
+                scroll_program_counter |= ui.button("Scroll to program counter").clicked();
+                ui.checkbox(&mut state.follow_program_counter, "Follow program counter");
+            });
+
+            ui.separator();
+
+            egui::ScrollArea::vertical()
+                .max_height(200.0)
+                .show(ui, |ui| {
+                    if scroll_top {
+                        ui.scroll_to_cursor(Some(egui::Align::TOP));
+                    }
+
+                    egui::Grid::new("memory_ram").striped(true).show(ui, |ui| {
+                        ui.label("Address");
+                        for i in 0..=0xF {
+                            ui.label(format!("{:1X}", i));
+                        }
+                        ui.end_row();
+
+                        for (i, bytes) in debug.memory_ram.chunks(16).enumerate() {
+                            ui.label(format!("{:08X}", i * 0x10));
+                            for (j, byte) in bytes.iter().enumerate() {
+                                if i as u16 * 0x10 + j as u16 == debug.register_program_counter {
+                                    let response = ui.colored_label(
+                                        egui::Color32::YELLOW,
+                                        format!("{:02X}", byte),
+                                    );
+                                    if scroll_program_counter || state.follow_program_counter {
+                                        response.scroll_to_me(Some(egui::Align::Center))
+                                    }
+                                } else {
+                                    ui.label(format!("{:02X}", byte));
+                                }
+                            }
+                            ui.end_row();
+                        }
+                    });
+
+                    if scroll_bottom {
+                        ui.scroll_to_cursor(Some(egui::Align::BOTTOM));
+                    }
+                });
+        });
+    }
+
+    fn debug_ui(ui: &mut egui::Ui, emulator: &mut crate::chip8::emulator::Emulator) {
+        egui::CollapsingHeader::new("Debug").show(ui, |ui| {
+            if ui.button("Step Execute").clicked() {
+                emulator.step_execute();
+            }
+
+            if ui.button("Zero Delay Timer").clicked() {
+                emulator.zero_delay();
+            }
+
+            if ui.button("Zero Sound Timer").clicked() {
+                emulator.zero_sound();
+            }
+        });
     }
 }
