@@ -10,6 +10,7 @@ mod display;
 
 mod emulator;
 
+#[cfg(feature = "editor")]
 mod editor;
 
 mod window;
